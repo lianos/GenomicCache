@@ -1,0 +1,2 @@
+importFrom(GenomicFeatures,
+           "txdbConn")
