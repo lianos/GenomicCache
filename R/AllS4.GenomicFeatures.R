@@ -79,6 +79,22 @@ function(x, vals=NULL) {
   GenomicFeatures::cds(x, vals)
 })
 
+setGeneric("threeUTRsByTranscript", function(x) {
+  standardGeneric("threeUTRsByTranscript")
+})
+setMethod("threeUTRsByTranscript", c(x="TranscriptDb"),
+function(x) {
+  GenomicFeatures::threeUTRsByTranscript(x)
+})
+
+setGeneric("fiveUTRsByTranscript", function(x) {
+  standardGeneric("fiveUTRsByTranscript")
+})
+setMethod("fiveUTRsByTranscript", c(x="TranscriptDb"),
+function(x) {
+  GenomicFeatures::fiveUTRsByTranscript(x)
+})
+
 ## if (!isGeneric("transcripts")) {
 ##   if (is.function("transcripts")) {
 ##     fun <- transcripts

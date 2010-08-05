@@ -75,6 +75,20 @@ function(x, by) {
   })
 })
 
+setMethod("fiveUTRsByTranscript", c(x="GenomicCache"),
+function(x) {
+  cacheFetch(x, 'utr5', {
+    fiveUTRsByTranscript(x@.txdb)    
+  })
+})
+
+setMethod("threeUTRsByTranscript", c(x="GenomicCache"),
+function(x) {
+  cacheFetch(x, 'utr3', {
+    threeUTRsByTranscript(x@.txdb)
+  })
+})
+
 setMethod("genome", c(x="GenomicCache"),
 function(x, ...) {
   genome(x@.txdb)
