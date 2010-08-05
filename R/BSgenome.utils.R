@@ -41,13 +41,14 @@ getAnnotationLibraryName <- function(genome='hg18') {
 getEgAnnotationMapFromVersion <- function(what, version='hg18') {
   what <- toupper(what)
   valid.maps <- c(
-    "CHRLOC",     "ENSEMBLTRANS2EG",  "MAP",        "PATH2EG",    "SYMBOL",     "UCSCKG",
-    "CHRLOCEND",  "ENZYME",           "MAP2EG",     "PFAM",       "SYMBOL2EG",  "UNIGENE",
-    "ACCNUM",     "ENSEMBL",          "ENZYME2EG",  "MAPCOUNTS",  "PMID",       "UNIGENE2EG",
-    "ACCNUM2EG",  "ENSEMBL2EG",       "GENENAME",   "OMIM",       "PMID2EG",    "UNIPROT",
-    "ALIAS2EG",   "ENSEMBLPROT",      "GO",         "OMIM2EG",    "PROSITE",
-    "CHR",        "ENSEMBLPROT2EG",   "GO2ALLEGS",  "ORGANISM",   "REFSEQ",
-    "CHRLENGTHS", "ENSEMBLTRANS",     "GO2EG",      "PATH",       "REFSEQ2EG"
+    "CHRLOC",         "ENSEMBLTRANS2EG",  "MAP",        "PATH2EG",    "SYMBOL",
+    "UCSCKG",         "CHRLOCEND",        "ENZYME",     "MAP2EG",     "PFAM",
+    "SYMBOL2EG",      "UNIGENE",          "ACCNUM",     "ENSEMBL",    "ENZYME2EG",
+    "MAPCOUNTS",      "PMID",             "UNIGENE2EG", "ACCNUM2EG",
+    "ENSEMBL2EG",     "GENENAME",         "OMIM",       "PMID2EG",    "UNIPROT",
+    "ALIAS2EG",       "ENSEMBLPROT",      "GO",         "OMIM2EG",    "PROSITE",
+    "CHR",            "ENSEMBLPROT2EG",   "GO2ALLEGS",  "ORGANISM",   "REFSEQ",
+    "CHRLENGTHS",     "ENSEMBLTRANS",     "GO2EG",      "PATH",       "REFSEQ2EG"
   )
   if (!what %in% valid.maps) {
     stop("Illegal map name for org.XX.eg.db's : ", what)
