@@ -22,7 +22,7 @@ cacheFetch <- function(x, what, expr) {
 ## These are used to store cached objects for a given GenomicCache, such as
 ## stored GFGene objects / chromosome, see getGenesOnChromosome
 .cache.dir <- 'GenomicFeaturesX_CACHE_DIR'
-.getCacheDir <- function(path) {
+.getCacheDir <- function(path=NULL) {
   if (is.null(path)) {
     path <- Sys.getenv(.cache.dir)
     if (is.null(path)) {

@@ -1,7 +1,7 @@
 ## Functions that mimic my GenomeAnnotation calls
 ## (for package migration purposes)
 .geneCacheFileName <- function(gcache, chromosome) {
-  paste("genes", genome(gcache), annotationSource(gcache), chr, "rda", sep=".")
+  paste(genome(gcache), annotationSource(gcache), "genes", chromosome, "rda", sep=".")
 }
 
 loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
