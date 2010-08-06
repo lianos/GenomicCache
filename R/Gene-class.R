@@ -116,14 +116,23 @@ GFGene <- function(..., .gc=NULL) {
   xm <- values(xcripts)
   tx.ids <- as.character(xm$tx_id)
 
-  ## Errors fly when you try to index a GRangesList with a key that it doesn't
-  ## have. This happens when slicing cds()[...] with an RNA, for example.
-  none <- function(e) GRangesList()
+  ## Errors fly when you try to index a GRangesList with a multiple keys, and
+  ## one of which isn't present. This is why I lapply of the tx.ids instead
+  ## of cdsBy(.gd, 'tx)[tx.ids]
+  take <- function(grl, idxs) {
+    x <- GRangesList(lapply(idxs, function(idx) {
+      xx <- grl[[idx]]
+      if (is.null(xx)) xx <- GRanges()
+      xx
+    }))
+    names(x) <- idxs
+    x
+  }
   
-  g.exons <- .exons[as.character(xm$tx_id)]
-  g.cds <- tryCatch(cdsBy(.gc, 'tx')[tx.ids], error=none)
-  g.utr5 <- tryCatch(fiveUTRsByTranscript(.gc)[tx.ids], error=none)
-  g.utr3 <- tryCatch(threeUTRsByTranscript(.gc)[tx.ids], error=none)
+  g.exons <- .exons[tx.ids]
+  g.cds <- take(cdsBy(.gc, 'tx'), tx.ids)
+  g.utr5 <- take(fiveUTRsByTranscript(.gc), tx.ids)
+  g.utr3 <- take(threeUTRsByTranscript(.gc), tx.ids)
   
   new(class.name,
       .id=id,
@@ -146,8 +155,9 @@ function(object) {
                     ens="Ensembl", ref="RefSeq", ace="AceView",
                     "unknown source")
   xcripts <- transcripts(object)
-  cat(sprintf("%s (%s), %d transcripts [%s]\n",
-              symbol(object), strand(object), length(xcripts), asource))
+  cat(sprintf("%s[%s], %s(%s) %d transcripts\n",
+              symbol(object), asource, chromosome(object), strand(object),
+              length(xcripts)))
   for (idx in 1:length(xcripts)) {
     bounds <- range(ranges(xcripts[[idx]]))
     cat(" ", object@.transcript.names[idx], ": ")
@@ -209,84 +219,13 @@ function(x, ...) {
   getBsGenomeFromVersion(genome(x))
 })
 
-
-matchGFGeneSummaryType <- function(what) {
-  opts <- c('constitutiveExons', 'cover', 'first')
-   if (!is.numeric(what)) {
-    what <- match.arg(what, opts)
-  } else {
-    what <- as.integer(what)
-  }
-  if (what == 'first') {
-    what <- 1L
-  }
-  what
-}
-
-##' Returns an "annotated" GRanges object by "compressing" the exons
-##' across isoforms
-setGeneric("summarized", function(x, ...) standardGeneric("summarized"))
-setMethod("summarized", c(x="GFGene"),
-function(x, exon.type='constitutiveExons', cds.cover=c('min', 'max'),
-         ...) {
-  cds.cover <- match.arg(cds.cover)
-  exon.type <- matchGFGeneSummaryType(exon.type)
-  
-  if (is.integer(exon.type)) {
-    if (exon.type > length(transcripts(x)) || exon.type < 1L) {
-      stop("Transcript chosen for `exon.type` is out of bounds")
-    }
-  }
-
-  reducef <- switch(exon.type, cover='union', 'intersect')
-  
-  if (all(isProteinCoding(x))) {
-    if (is.integer(exon.type)) {
-      .cds <- cds(x)[[exon.type]]
-      .utr3 <- utr3(x)[[exon.type]]
-      .utr5 <- utr5(x)[[exon.type]]
-    } else {
-      .cds <- Reduce(reducef, lapply(cds(x), ranges))
-      .utr3 <- Reduce(reducef, lapply(utr3(x), ranges))
-      .utr5 <- Reduce(reducef, lapply(utr5(x), ranges))
-
-      if (cds.cover == 'min') {
-        .cds <- setdiff(.cds, union(.utr3, .utr5))
-      } else {
-        .utr3 <- setdiff(.utr3, .cds)
-        .utr5 <- setdiff(.utr5, .cds)
-      }
-    }
-    
-    ranges <- c(.utr5, .cds, .utr3)
-    exon.anno <- c(rep('utr5', length(.utr5)),
-                   rep('cds', length(.cds)),
-                   rep('utr3', length(.utr3)))
-  } else {
-    ranges <- Reduce(reducef, lapply(transcripts(x), ranges))
-    exon.anno <- c(rep('utr', length(ranges)))
-  }
-  
-  gr <- GRanges(seqnames=rep(chromosome(x), length(ranges)),
-                ranges=ranges,
-                strand=rep(strand(x), length(ranges)))
-  values(gr) <- DataFrame(exon.anno=exon.anno)
-  gr <- gr[order(start(gr))]
-  gr
-})
-
 ############################################################## Simple Accessors
-setGeneric("isProteinCoding", function(x, ...) standardGeneric("isProteinCoding"))
+setGeneric("isProteinCoding", function(x, ...) {
+  standardGeneric("isProteinCoding")
+})
 setMethod("isProteinCoding", c(x="GFGene"),
 function(x, ...) {
-  xcript.names <- names(transcripts(x))
-  cds.names <- names(cds(x))
-  if (is.null(cds.names)) {
-    cds.names <- character()
-  }
-  ispc <- xcript.names %in% cds.names
-  names(ispc) <- xcript.names
-  ispc
+  sapply(cds(x), function(exons) length(exons) > 0)
 })
 
 setGeneric("id", function(x, ...) standardGeneric("id"))
