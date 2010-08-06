@@ -18,3 +18,22 @@ cacheFetch <- function(x, what, expr) {
   get(what, x@.cache, inherits=FALSE)
 }
 
+################################################################################
+## These are used to store cached objects for a given GenomicCache, such as
+## stored GFGene objects / chromosome, see getGenesOnChromosome
+.cache.dir <- 'GenomicFeaturesX_CACHE_DIR'
+.getCacheDir <- function(path) {
+  if (is.null(path)) {
+    path <- Sys.getenv(.cache.dir)
+    if (is.null(path)) {
+      stop("No cache directory provided, and one isn't set in envir")
+    }
+  }
+  if (!is.character(path)) {
+    stop("Illegal path parameter of type: ", class(path)[1])
+  }
+  if (is.na(file.info(path)$isdir) || !file.info(path)$isdir) {
+    stop("Cannot read cache directory: ", path)
+  }
+  path
+}

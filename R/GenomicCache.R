@@ -34,6 +34,12 @@ GenomicCache <- function(txdb, pre.load=c('transcripts', 'exons', 'utr3')) {
       .txdb=txdb)
 }
 
+setMethod("seqnames", c(x="GenomicCache"),
+function(x) {
+  seqnames(x@.txdb)
+})
+
+
 setMethod("transcripts", c(x="GenomicCache"),
 function(x, vals=NULL, columns=c("tx_id", "tx_name")) {
   cacheFetch(x, 'transcripts', {
@@ -48,6 +54,7 @@ function(x, vals) {
     exons(x@.txdb, vals)
   })
 })
+
 
 setMethod("exonsBy", c(x="GenomicCache"),
 function(x, by) {

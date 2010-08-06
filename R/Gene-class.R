@@ -77,24 +77,29 @@ GFGene <- function(..., .gc=NULL) {
   if (is.null(id.type)) {
     id.type <- .guessGeneIdType(id, .gc)
   }
-  
+
+  ## Necessary monkey business to "do the right thing" in order to get
+  ## the correct entrez.id and symbol for this gene
   if (id.type == 'symbol') {
     symbol <- id
     entrez.id <- getEntrezIdFromSymbol(.gc, symbol)
-  } else if (id.type == 'id') {
-    ## Will throw an error if its not an ensembl source
-    entrez.id <- getEntrezIdFromGeneId(.gc, id)
-    symbol <- getSymbolFromEntrezId(.gc, entrez.id)
-  } else if (id.type == 'tx.id') {
-    entrez.id <- getEntrezIdFromTranscriptId(.gc, id)
+  } else {
+    if (class.name == 'EnsemblGene') {
+      if (id.type == 'id') {
+        entrez.id <- getEntrezIdFromGeneId(.gc, id)
+      } else {
+        entrez.id <- getEntrezIdFromTranscriptId(.gc, id)
+      }
+    } else {
+      entrez.id <- getEntrezIdFromTranscriptId(.gc, id)      
+    }
     symbol <- getSymbolFromEntrezId(.gc, entrez.id)
   }
-
-  id <- getGeneIdFromEntrezId(.gc, entrez.id)
-
+  
   .exons <- exonsBy(.gc, 'tx')
   .transcripts <- transcripts(.gc)
-    
+
+  ## Get all transcript IDs associated with this gene
   tx.name <- getTranscriptIdFromEntrezId(.gc, entrez.id)
   xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
   xm <- values(xcripts)
