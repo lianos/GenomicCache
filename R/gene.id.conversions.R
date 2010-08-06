@@ -1,27 +1,46 @@
-setGeneric("getEntrezIdFromSymbol", function(x, symbol) {
+setGeneric("getEntrezIdFromSymbol", function(x, id) {
   standardGeneric("getEntrezIdFromSymbol")
 })
 setMethod("getEntrezIdFromSymbol", c(x="TranscriptDb"),
-function(x, symbol) {
+function(x, id) {
   symbol2eg <- getEgAnnotationMapFromVersion("SYMBOL2EG", genome(x))
-  entrez.id <- symbol2eg[[symbol]]
+  ids <- mget(id, symbol2eg, ifnotfound=NA)
   
-  if (is.null(entrez.id)) {
+  if (is.null(ids)) {
+    unk <- seq_along(id)
+  } else {
+    unk <- which(sapply(ids, is.na))    
+  }
+  
+  if (length(unk) > 0) {
+    ## Look in alias
     alias2eg <- getEgAnnotationMapFromVersion("ALIAS2EG", genome(x))
-    entrez.id <- alias2eg[[symbol]]    
+    ids2 <- mget(id[unk], alias2eg, ifnotfound=NA)
+
+    if (is.null(ids2)) {
+      unk2 <- seq_along(ids2)
+    } else {
+      unk2 <- which(sapply(ids2, is.na))
+    }
+
+    if (length(unk2) > 0) {
+      warning("Unknown transcript ids: ", paste(id[unk][unk2], collapse=","))
+      ids2 <- ids2[-unk2]
+    }
+    
+    ids2[unk2] <- NULL
+    ids <- c(ids[-unk], ids2)
   }
   
-  if (is.null(entrez.id)) {
-    stop("Unknown gene symbol: ", symbol)
+  if (length(id) == 1) {
+    ids <- unlist(ids)
   }
-  ## if (length(entrez.id) != length(symbol)) {
-  ##   warning("More than one entrez id for ", symbol)
-  ## }
-  entrez.id
+  ids
 })
+
 setMethod("getEntrezIdFromSymbol", c(x="GenomicCache"),
-function(x, symbol) {
-  getEntrezIdFromSymbol(x@.txdb, symbol)
+function(x, id) {
+  getEntrezIdFromSymbol(x@.txdb, id)
 })
 
 setGeneric("getEntrezIdFromTranscriptId", function(x, id) {
@@ -37,8 +56,14 @@ function(x, id) {
   } else {
     stop("Unknown annotation source (UCSC Table): ", asource)
   }
+  
   ids <- mget(id, map, ifnotfound=NA)
-  unk <- which(sapply(ids, is.na))
+  if (is.null(ids)) {
+    unk <- seq_along(id)
+  } else {
+    unk <- which(sapply(ids, is.na))    
+  }
+  
   if (length(unk) > 0) {
     warning("Unknown transcript ids: ", paste(id[unk], collapse=","))
     ids[unk] <- NULL
@@ -67,7 +92,13 @@ function(x, id) {
     map <- getEgAnnotationMapFromVersion('ENSEMBL2EG', genome(x))
     ids <- mget(id, map, ifnotfound=NA)
   }
-  unk <- which(sapply(ids, is.na))
+
+  if (is.null(ids)) {
+    unk <- seq_along(id)
+  } else {
+    unk <- which(sapply(ids, is.na))    
+  }
+  
   if (length(unk) > 0) {
     warning("Unknown transcript ids: ", paste(id[unk], collapse=","))
     ids[unk] <- NULL
@@ -96,8 +127,14 @@ function(x, id) {
   } else {
     stop("Unknown annotation source (UCSC Table): ", asource)
   }
+
   ids <- mget(id, map, ifnotfound=NA)
-  unk <- which(sapply(ids, is.na))
+  if (is.null(ids)) {
+    unk <- seq_along(id)
+  } else {
+    unk <- which(sapply(ids, is.na))    
+  }
+  
   if (length(unk) > 0) {
     warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
     ids[unk] <- NULL
@@ -129,11 +166,18 @@ setMethod("getSymbolFromEntrezId", c(x="TranscriptDb"),
 function(x, id) {
   map <- getEgAnnotationMapFromVersion('SYMBOL', genome(x))
   ids <- mget(id, map, ifnotfound=NA)
-  unk <- which(sapply(ids, is.na))
+
+  if (is.null(ids)) {
+    unk <- seq_along(id)
+  } else {
+    unk <- which(sapply(ids, is.na))    
+  }
+  
   if (length(unk) > 0) {
     warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
     ids[unk] <- NULL
   }
+  
   if (length(ids) == 1) {
     ids <- unlist(ids)
   }
@@ -157,11 +201,17 @@ function(x, id) {
   } else if (asource == 'ensGene') {
     map <- revmap(getEgAnnotationMapFromVersion('ENSEMBL2EG', genome(x)))
     ids <- mget(id, map, ifnotfound=NA)
-    unk <- which(sapply(ids, is.na))
-    if (length(unk) > 0) {
-      warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
-      ids[unk] <- NULL
-    }
+  }
+
+  if (is.null(ids)) {
+    unk <- seq_along(id)
+  } else {
+    unk <- which(sapply(ids, is.na))    
+  }
+  
+  if (length(unk) > 0) {
+    warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
+    ids[unk] <- NULL
   }
   
   if (length(ids) == 1) {
@@ -169,6 +219,7 @@ function(x, id) {
   }
   ids
 })
+
 setMethod("getGeneIdFromEntrezId", c(x="GenomicCache"),
 function(x, id) {
   getGeneIdFromEntrezId(x@.txdb, id)
