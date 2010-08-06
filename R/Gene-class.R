@@ -81,8 +81,7 @@ GFGene <- function(..., .gc=NULL) {
   ## Necessary monkey business to "do the right thing" in order to get
   ## the correct entrez.id and symbol for this gene
   if (id.type == 'symbol') {
-    symbol <- id
-    entrez.id <- getEntrezIdFromSymbol(.gc, symbol)
+    entrez.id <- getEntrezIdFromSymbol(.gc, id)
   } else {
     if (class.name == 'EnsemblGene') {
       if (id.type == 'id') {
@@ -93,8 +92,20 @@ GFGene <- function(..., .gc=NULL) {
     } else {
       entrez.id <- getEntrezIdFromTranscriptId(.gc, id)      
     }
-    symbol <- getSymbolFromEntrezId(.gc, entrez.id)
   }
+
+  ## DEBUG: Why does more than one entrez id come back -- and even for the
+  ##        wrong transcript id? Try ENST00000270722, it returns results for
+  ##        ENST000002707221 and ENST000002707222
+  if (!is.null(entrez.id) && !(id %in% names(entrez.id))) {
+    entrez.id <- NULL
+  }
+  if (is.null(entrez.id)) {
+    stop("Unknown gene identifier: ", id, " (is it a ", id.type, "?)")
+  }
+  
+  symbol <- getSymbolFromEntrezId(.gc, entrez.id)
+
   
   .exons <- exonsBy(.gc, 'tx')
   .transcripts <- transcripts(.gc)
