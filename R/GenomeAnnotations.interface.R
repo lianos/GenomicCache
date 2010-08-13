@@ -16,6 +16,8 @@ loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
   get(obj)
 }
 
+## ~ 6 Hours for RefSeq hg18
+## ~ 8.3 hours for Ensembl hg18
 generateGFXGeneModels <- function(gcache, chromosomes=NULL, cache.dir=NULL) {
   require(plyr)
   cache.dir <- .getCacheDir(cache.dir)

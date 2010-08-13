@@ -1,10 +1,6 @@
 setClassUnion("MaybeTranscriptDb", c('TranscriptDb', 'NULL'))
-
 setClass("GenomicFeaturesX", contains="VIRTUAL")
 
-## Load up the transcripts, exonsBy, threeUTRsByTranscript,
-## fiveUTRsByTranscript. Seems we want to query the *Ranges objects
-## in memory
 setClass("GenomicCache",
          representation(.txdb='MaybeTranscriptDb',
                         ## .transcripts="GRanges",
@@ -13,7 +9,6 @@ setClass("GenomicCache",
                         ## .utr3="GRangesList",
                         .cache="environment"))
 
-## OO Way to deal with Gene objects
 setClass("GFGene",
          representation(.id='character',
                         .entrez.id='character',
@@ -31,3 +26,41 @@ setClass("GFGene",
 setClass("RefSeqGene", contains="GFGene")
 setClass("EnsemblGene", contains="GFGene")
 setClass("AceviewGene", contains="GFGene")
+
+################################################################################
+## Methods : Generic (work on all GenomicFeaturesX-type objects)
+
+setGeneric("duplicate", function(x, ...) standardGeneric("duplicate"))
+setGeneric("getEgAnnotationMap", function(x, what, ...) {
+  standardGeneric("getEgAnnotationMap")
+})
+setGeneric("annotationSource", function(x, ...) {
+  standardGeneric("annotationSource")
+})
+setGeneric("genome", function(x, ...) standardGeneric("genome"))
+
+##setGeneric("cacheFetch", function(x, what, expr) standardGeneric("cachFetch"))
+setGeneric("clearCache", function(x, ...) standardGeneric("clearCache"))
+setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
+
+################################################################################
+## Methods: TranscriptDb + GenomicCache + Gene
+setGeneric("exons", function(x, vals=NULL) standardGeneric("exons"))
+setGeneric("cds", function(x, ...) standardGeneric("cds"))
+setGeneric("transcripts", function(x, ...) standardGeneric("transcripts"))
+
+################################################################################
+## Methods: Gene
+setGeneric("chromosome", function(object, ...) standardGeneric("chromosome"))
+
+################################################################################
+## Methods: GenomicCache + TranscriptDb
+setGeneric("chromosomes", function(x, ...) {
+  standardGeneric("chromosomes")
+})
+
+setGeneric("dataSource", function(x, ...) standardGeneric("dataSource"))
+setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
+setGeneric("getMetadata", function(x, ...) standardGeneric("getMetadata"))
+setGeneric("setMetadata", function(x, ...) standardGeneric("setMetadata"))
+
