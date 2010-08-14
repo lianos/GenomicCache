@@ -3,10 +3,6 @@ setClass("GenomicFeaturesX", contains="VIRTUAL")
 
 setClass("GenomicCache",
          representation(.txdb='MaybeTranscriptDb',
-                        ## .transcripts="GRanges",
-                        ## .exons="GRangesList", ## byTranscript
-                        ## .utr5="GRangesList",  ## byTranscript
-                        ## .utr3="GRangesList",
                         .cache="environment"))
 
 setClass("GFGene",
@@ -63,4 +59,7 @@ setGeneric("dataSource", function(x, ...) standardGeneric("dataSource"))
 setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 setGeneric("getMetadata", function(x, ...) standardGeneric("getMetadata"))
 setGeneric("setMetadata", function(x, ...) standardGeneric("setMetadata"))
+
+################################################################################
+## Methods: GenomicCache
 

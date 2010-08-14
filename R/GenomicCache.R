@@ -39,6 +39,10 @@ function(x) {
   seqnames(x@.txdb)
 })
 
+setMethod("chromosomes", c(x="GenomicCache"),
+function(x, ...) {
+  seqnames(x@.txdb)
+})
 
 setMethod("transcripts", c(x="GenomicCache"),
 function(x, vals=NULL, columns=c("tx_id", "tx_name")) {

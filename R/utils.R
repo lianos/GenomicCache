@@ -21,6 +21,23 @@ uniquefy <- function(values) {
   values
 }
 
+dir.exists <- function(path) {
+  if (!is.character(path)) {
+    stop("Illegal variable type for path: ", is(path)[1])
+  }
+  
+  if (is.na(file.info(path)$isdir) || !file.info(path)$isdir) {
+    FALSE
+  } else {
+    TRUE
+  }
+}
+
+assert.dir.exists <- function(path) {
+  if (!dir.exists(path)) stop("Can't access directory: ", path)
+}
+
+
 ## setAs("GRanges", "IntervalTree", function(from) {
 ##   as(ranges(from), "IntervalTree")
 ## })

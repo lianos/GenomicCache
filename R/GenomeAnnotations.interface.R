@@ -6,7 +6,7 @@
 }
 
 loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
-  cache.dir <- .getCacheDir(cache.dir)
+  cache.dir <- GFXCacheDir(cache.dir, 'gene.models')
   file.name <- .geneCacheFileName(gcache, chromosome)
   fpath <- file.path(cache.dir, file.name)
   if (is.na(file.info(fpath)$isdir)) {
@@ -19,8 +19,9 @@ loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
 ## ~ 6 Hours for RefSeq hg18
 ## ~ 8.3 hours for Ensembl hg18
 generateGFXGeneModels <- function(gcache, chromosomes=NULL, cache.dir=NULL) {
-  require(plyr)
-  cache.dir <- .getCacheDir(cache.dir)
+  if (!require(plyr)) stop("Plyr is used here")
+  cache.dir <- GFXCacheDir(cache.dir, 'gene.models')
+  
   if (is.null(chromosomes)) {
     chromosomes <- seqnames(gcache)
   }
@@ -57,6 +58,7 @@ setGeneric("getGenesOnChromosome",
 function(x, chromosome, start=NULL, end=NULL, cache.dir=NULL) {
   standardGeneric("getGenesOnChromosome")
 })
+
 setMethod("getGenesOnChromosome", c(x="GenomicCache"),
 function(x, chromosome, start, end, cache.dir=NULL) {
   genes <- loadGFXGeneModels(x, chromosome, cache.dir=cache.dir)
