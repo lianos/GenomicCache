@@ -71,10 +71,6 @@ GFGene <- function(..., .gc=NULL) {
   if (is.null(id.type)) {
     id.type <- .guessGeneIdType(id, annotationSource(.gc))
   }
-  
-  if (is.null(id.type)) {
-    id.type <- .guessGeneIdType(id, .gc)
-  }
 
   ## Necessary monkey business to "do the right thing" in order to get
   ## the correct entrez.id and symbol for this gene
