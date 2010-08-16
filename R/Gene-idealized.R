@@ -47,6 +47,7 @@ function(x, by=c('all', 'cds', 'utr5', 'utr3'),
          cds.cover=c('min', 'max'), ...) {
   standardGeneric("idealized")
 })
+
 setMethod("idealized", c(x="GFGene"),
 function(x, by, collapse, cds.cover, ...) {
   by <- match.arg(by)

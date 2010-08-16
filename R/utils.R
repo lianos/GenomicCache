@@ -22,10 +22,7 @@ uniquefy <- function(values) {
 }
 
 dir.exists <- function(path) {
-  if (!is.character(path)) {
-    stop("Illegal variable type for path: ", is(path)[1])
-  }
-  
+  path <- is.character(path)
   if (is.na(file.info(path)$isdir) || !file.info(path)$isdir) {
     FALSE
   } else {

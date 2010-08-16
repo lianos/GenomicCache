@@ -12,7 +12,6 @@ function(.Object, ...,
          .cds=GRangesList(),
          .utr5=GRangesList(),
          .utr3=GRangesList(),
-         .transcript.names=character(),
          .genome=character(),
          .cache=new.env()) {
   callNextMethod(.Object,
@@ -25,7 +24,6 @@ function(.Object, ...,
                  .cds=.cds,
                  .utr5=.utr5,
                  .utr3=.utr3,
-                 .transcript.names=.transcript.names,
                  .genome=.genome,
                  .cache=.cache,
                  ...)
@@ -115,10 +113,13 @@ GFGene <- function(..., .gc=NULL) {
   xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
   xm <- values(xcripts)
   tx.ids <- as.character(xm$tx_id)
-
+  meta <- DataFrame(tx_name=xm$tx_name)
+  
   ## Errors fly when you try to index a GRangesList with a multiple keys, and
   ## one of which isn't present. This is why I lapply of the tx.ids instead
-  ## of cdsBy(.gd, 'tx)[tx.ids]
+  ## of cdsBy(.gd, 'tx)[tx.ids]. This results in an empty GRanges object in the
+  ## the slot the expected cds, utr, etc. should have been if the transcript
+  ## had one.
   take <- function(grl, idxs) {
     x <- GRangesList(lapply(idxs, function(idx) {
       xx <- grl[[idx]]
@@ -129,10 +130,18 @@ GFGene <- function(..., .gc=NULL) {
     x
   }
   
+  
   g.exons <- .exons[tx.ids]
+  values(g.exons) <- meta
+  
   g.cds <- take(cdsBy(.gc, 'tx'), tx.ids)
+  values(g.cds) <- meta
+  
   g.utr5 <- take(fiveUTRsByTranscript(.gc), tx.ids)
+  values(g.utr5) <- meta
+  
   g.utr3 <- take(threeUTRsByTranscript(.gc), tx.ids)
+  values(g.utr3) <- meta
   
   new(class.name,
       .id=id,
@@ -144,7 +153,6 @@ GFGene <- function(..., .gc=NULL) {
       .cds=g.cds,
       .utr5=g.utr5,
       .utr3=g.utr3,
-      .transcript.names=xm$tx_name,
       .genome=genome(.gc)
       )
 }
@@ -166,6 +174,11 @@ function(object) {
     cat(format(end(bounds), big.mark=","), "\n")
   }
   
+})
+
+setMethod("length", c(x="GFGene"),
+function(x) {
+  length(x@.exons)
 })
 
 setGeneric("txBounds", function(x, ...) standardGeneric("txBounds"))
@@ -205,6 +218,15 @@ setGeneric("utr3", function(x, ...) standardGeneric("utr3"))
 setMethod("utr3", c(x="GFGene"),
 function(x, ...) {
   x@.utr3
+})
+
+setMethod("range", c(x="GFGene"),
+function(x, by=c('gene', 'tx', 'cds'), ..., na.rm=TRUE) {
+  by <- match.arg(by)
+  switch(by,
+         gene=range(unlist(transcripts(x), ranges)),
+         tx=GRangesList(lapply(transcripts(x), range)),
+         cds=GRangesList(lapply(cds(x), range)))
 })
 
 setMethod("ranges", c(x="GFGene"),
@@ -286,6 +308,14 @@ function(x) {
 setMethod("transcripts", c(x="GFGene"),
 function(x, ...) {
   x@.exons
+})
+
+setGeneric("txNames", function(x, ...) {
+  standardGeneric("txNames")
+})
+setMethod("txNames", c(x="GFGene"),
+function(x, ...) {
+  values(x@.exons)$tx_name
 })
 
 setMethod("exons", c(x="GFGene"),
