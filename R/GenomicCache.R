@@ -1,37 +1,50 @@
 setMethod("initialize", "GenomicCache",
 function(.Object, ...,
+         .genome=character(),
+         .path=character(),
          .txdb=NULL,
          .cache=new.env()) {
   callNextMethod(.Object,
+                 .genome=.genome,
+                 .path=.path,
                  .txdb=.txdb,
                  .cache=.cache,
                  ...)
 })
 
-GenomicCache <- function(txdb, pre.load=c('transcripts', 'exons', 'utr3')) {
+GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
+  if (!dir.exists(path)) {
+    stop("Cannot read directory: ", path)
+  }
+  features.path <- file.path(path, 'features') 
+  if (!dir.exists(features.path)) {
+    stop("Invalid GenomicCache directory -- no 'features' subdirectory found.")
+  }
+  
+  ## Get the TranscriptDb object
+  txdb.path <- list.files(features.path, 'TranscriptDb', ignore.case=TRUE,
+                          full.names=TRUE)
+  if (length(txdb.path) != 1) {
+    stop("Need 1 and only 1 TranscriptDb object in the GenomicCache/features ",
+         "directory, found: ", length(txdb.path))
+  }
+  txdb <- loadFeatures(txdb.path)
+  attr(txdb, 'path') <- txdb.path
+  
+  gc <- new('GenomicCache',
+            .genome=genome(txdb),
+            .path=path,
+            .txdb=txdb)
+  
+  ## Preload objects
   can.load <- c('transcripts', 'exons', 'utr3', 'utr5')
-  bad.load <- which(!pre.load %in% can.load)
-  if (length(bad.load) > 0) {
-    warning("Illegal things to load: ", paste(pre.load[bad.load], collapse=","))
-    pre.load <- pre.load[-bad.load]
-  }
-  
-  if (is.character(txdb)) {
-    if (!file.exists(txdb)) {
-      stop("Can't read TranscriptDb file: ", txdb)
-    }
-    txdb <- loadFeatures(txdb)
-  }
-  if (!inherits(txdb, 'TranscriptDb')) {
-    stop("Need a valid TranscriptDb object to continue")
-  }
-
   for (what in pre.load) {
-    
+    if (!what %in% can.load) warning("Don't know how to load: ", what, "\n")
+    cat("Preloading", what, "...\n")
+    getFunction(what)(gc)
   }
   
-  new('GenomicCache',
-      .txdb=txdb)
+  gc
 }
 
 setMethod("seqnames", c(x="GenomicCache"),
@@ -46,63 +59,68 @@ function(x, ...) {
 
 setMethod("transcripts", c(x="GenomicCache"),
 function(x, vals=NULL, columns=c("tx_id", "tx_name")) {
-  cacheFetch(x, 'transcripts', {
-    transcripts(x@.txdb)
+  var <- generateCacheName('transcripts', vals=vals, columns=columns)
+  cacheFetch(x, var, {
+    transcripts(x@.txdb, vals, columns)
   })
 })
 
 
 setMethod("exons", c(x="GenomicCache"),
-function(x, vals) {
-  cacheFetch(x, 'exons', {
-    exons(x@.txdb, vals)
+function(x, vals=NULL, columns="exon_id") {
+  var <- generateCacheName('exons', vals=NULL, columns=columns)
+  cacheFetch(x, var, {
+    exons(x@.txdb, vals, columns)
   })
 })
 
 
 setMethod("exonsBy", c(x="GenomicCache"),
-function(x, by) {
+function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   by <- match.arg(by)
-  var.name <- sprintf("exonsBy.%s", by)
-  cacheFetch(x, var.name, {
-    exonsBy(x@.txdb, by)
+  var <- generateCacheName('exonsBy', by=by, use.names=use.names)
+  cacheFetch(x, var, {
+    exonsBy(x@.txdb, by, use.names=use.names)
   })
 })
 
 
 setMethod("cds", c(x="GenomicCache"),
-function(x, ...) {
-  cacheFetch(x, 'cds', {
-    cds(x@.txdb)
+function(x, vals=NULL, columns="cds_id") {
+  var <- generateCacheName('cds', vals=vals, columns=columns)
+  cacheFetch(x, var, {
+    cds(x@.txdb, vals, columns)
   })
 })
 
 setMethod("cdsBy", c(x="GenomicCache"),
-function(x, by) {
+function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   by <- match.arg(by)
-  var.name <- sprintf('cdsBy.%s', by)
-  cacheFetch(x, var.name, {
-    cdsBy(x@.txdb, by)
+  var <- generateCacheName('cdsBy', by=by, use.names=use.names)
+  cacheFetch(x, var, {
+    cdsBy(x@.txdb, by, use.names=use.names)
   })
 })
 
 setMethod("fiveUTRsByTranscript", c(x="GenomicCache"),
-function(x) {
+function(x, use.names=FALSE, ...) {
+  var <- generateCacheName('fiveUTRsByTranscript', use.names=FALSE)
   cacheFetch(x, 'utr5', {
-    fiveUTRsByTranscript(x@.txdb)    
+    fiveUTRsByTranscript(x@.txdb, use.names=use.names)    
   })
 })
 
 setMethod("threeUTRsByTranscript", c(x="GenomicCache"),
-function(x) {
+function(x, use.names=FALSE, ...) {
+  var <- generateCacheName('threeUTRsByTranscript', use.names=FALSE)
   cacheFetch(x, 'utr3', {
-    threeUTRsByTranscript(x@.txdb)
+    threeUTRsByTranscript(x@.txdb, use.names=use.names)
   })
 })
 
 setMethod("genome", c(x="GenomicCache"),
 function(x, ...) {
-  genome(x@.txdb)
+  x@.genome
 })
 
 setMethod("dataSource", c(x="GenomicCache"),

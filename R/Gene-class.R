@@ -74,7 +74,9 @@ GFGene <- function(..., .gc=NULL) {
 
   ## Necessary monkey business to "do the right thing" in order to get
   ## the correct entrez.id and symbol for this gene
+  symbol <- NULL
   if (id.type == 'symbol') {
+    symbol <- id
     entrez.id <- getEntrezIdFromSymbol(.gc, id)
   } else {
     if (class.name == 'EnsemblGene') {
@@ -98,8 +100,9 @@ GFGene <- function(..., .gc=NULL) {
     stop("Unknown gene identifier: ", id, " (is it a ", id.type, "?)")
   }
   
-  symbol <- getSymbolFromEntrezId(.gc, entrez.id)
-
+  if (is.null(symbol)) {
+    symbol <- getSymbolFromEntrezId(.gc, entrez.id)
+  }
   
   .exons <- exonsBy(.gc, 'tx')
   .transcripts <- transcripts(.gc)
@@ -159,12 +162,13 @@ function(object) {
                     ens="Ensembl", ref="RefSeq", ace="AceView",
                     "unknown source")
   xcripts <- transcripts(object)
+  meta <- values(xcripts)
   cat(sprintf("%s[%s], %s(%s) %d transcripts\n",
               symbol(object), asource, chromosome(object), strand(object),
               length(xcripts)))
   for (idx in 1:length(xcripts)) {
     bounds <- range(ranges(xcripts[[idx]]))
-    cat(" ", object@.transcript.names[idx], ": ")
+    cat(" ", meta$tx_name[idx], ": ")
     cat(chromosome(object), ":", sep="")
     cat(format(start(bounds), big.mark=","), "-", sep="")
     cat(format(end(bounds), big.mark=","), "\n")
@@ -220,9 +224,9 @@ setMethod("range", c(x="GFGene"),
 function(x, by=c('gene', 'tx', 'cds'), ..., na.rm=TRUE) {
   by <- match.arg(by)
   switch(by,
-         gene=range(unlist(transcripts(x), ranges)),
-         tx=GRangesList(lapply(transcripts(x), range)),
-         cds=GRangesList(lapply(cds(x), range)))
+         gene=range(unlist(transcripts(x))),
+         tx=endoapply(transcripts(x), range),
+         cds=endoapply(cds(x), range))
 })
 
 setMethod("ranges", c(x="GFGene"),
@@ -309,6 +313,7 @@ function(x, ...) {
 setGeneric("txNames", function(x, ...) {
   standardGeneric("txNames")
 })
+
 setMethod("txNames", c(x="GFGene"),
 function(x, ...) {
   values(x@.exons)$tx_name

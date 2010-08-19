@@ -22,7 +22,7 @@ uniquefy <- function(values) {
 }
 
 dir.exists <- function(path) {
-  path <- is.character(path)
+  path <- as.character(path)
   if (is.na(file.info(path)$isdir) || !file.info(path)$isdir) {
     FALSE
   } else {

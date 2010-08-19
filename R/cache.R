@@ -18,6 +18,23 @@ cacheFetch <- function(x, what, expr) {
   get(what, x@.cache, inherits=FALSE)
 }
 
+generateCacheName <- function(base, ...) {
+  params <- list(...)
+  if (length(params) > 0) {
+    values <- sapply(params, function(p) {
+      name <- if (is.null(p)) "NULL" else as.character(p)
+      if (length(name) > 1) {
+        name <- paste(name, collapse="|")
+      }
+      name
+    })
+  } else {
+    values <- 'missing'
+  }
+  
+  params <- paste(names(params), values, sep=":", collapse=",")
+  paste(base, params, sep="/")
+}
 ################################################################################
 ## These are used to store cached objects for a given GenomicCache, such as
 ## stored GFGene objects / chromosome, see getGenesOnChromosome

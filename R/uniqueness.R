@@ -1,3 +1,7 @@
+## TODO: Debug this -- it was written cold, ie. not tested/run at all.
+## 
+## I'm planning to get unique reads from uniquely-aligned BAMs, but
+## this could still be useful.
 withinUniquenessBounds <- function(k) {
   .GFX$uniqueness$min.length <= k && k <= .GFX$uniqueness$max.length
 }
@@ -12,7 +16,7 @@ withinUniquenessBounds <- function(k) {
 ##' @param genome hg18, mm9, etc.
 ##' @param chromosome the name of the chromosome these ranges belong
 setGeneric("flagUniqueRanges",
-function(ranges, genome, chromosme=NULL, ...) {
+function(ranges, genome, chromosome=NULL, ...) {
   standardGeneric("flagUniqueRanges")
 })
 
@@ -22,7 +26,7 @@ function(ranges, genome, chromosme=NULL, ...) {
 ## map, otherwise we assume that the map is for the same width that the ranges
 ## and all of the ranges must be the same width
 setMethod("flagUniqueRanges", c(ranges="IRanges"),
-function(ranges, genome, chromosome, use.unversal=FALSE,
+function(ranges, genome, chromosome, use.universal=FALSE,
          uniqueness.map=NULL, ...) {
   if (missing(genome)) {
     stop("Need genome")
@@ -79,7 +83,7 @@ function(ranges, genome, chromosome, use.universal=FALSE, ...) {
   
   for (chr in chromosomes) {
     these <- which(seqnames(ranges) == chr)
-    u <- flagUniqueRanges(ranges(ranges[these]), genome, chr, use.unversal)
+    u <- flagUniqueRanges(ranges(ranges[these]), genome, chr, use.universal, ...)
     result[these] <- u
   }
 

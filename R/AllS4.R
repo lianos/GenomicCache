@@ -2,7 +2,9 @@ setClassUnion("MaybeTranscriptDb", c('TranscriptDb', 'NULL'))
 setClass("GenomicFeaturesX", contains="VIRTUAL")
 
 setClass("GenomicCache",
-         representation(.txdb='MaybeTranscriptDb',
+         representation(.genome='character',
+                        .path='character',
+                        .txdb='MaybeTranscriptDb',
                         .cache="environment"))
 
 setClass("GFGene",
@@ -40,12 +42,6 @@ setGeneric("clearCache", function(x, ...) standardGeneric("clearCache"))
 setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
 
 ################################################################################
-## Methods: TranscriptDb + GenomicCache + Gene
-setGeneric("exons", function(x, vals=NULL) standardGeneric("exons"))
-setGeneric("cds", function(x, ...) standardGeneric("cds"))
-setGeneric("transcripts", function(x, ...) standardGeneric("transcripts"))
-
-################################################################################
 ## Methods: Gene
 setGeneric("chromosome", function(object, ...) standardGeneric("chromosome"))
 
@@ -57,8 +53,6 @@ setGeneric("chromosomes", function(x, ...) {
 
 setGeneric("dataSource", function(x, ...) standardGeneric("dataSource"))
 setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
-setGeneric("getMetadata", function(x, ...) standardGeneric("getMetadata"))
-setGeneric("setMetadata", function(x, ...) standardGeneric("setMetadata"))
 
 ################################################################################
 ## Methods: GenomicCache
