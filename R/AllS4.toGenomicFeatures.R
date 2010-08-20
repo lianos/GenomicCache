@@ -2,10 +2,10 @@
 setMethod("metadata", c(x="TranscriptDb"),
 function(x, what=NULL, ...) {
   if (is.null(what)) {
-    GenomicFeatures::metadata(x)
+    dbReadTable(GenomicFeatures:::txdbConn(x), "metadata")
   } else {
     query <- "SELECT value FROM metadata WHERE name='%s';"
-    dbGetQuery(txdbConn(x), sprintf(query, what))$value
+    dbGetQuery(GenomicFeatures:::txdbConn(x), sprintf(query, what))$value
   }
 })
 

@@ -47,6 +47,25 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
   gc
 }
 
+## Get the gene symbol for these genes
+id2symbol <- function(x, ids=NULL) {
+  if (is(x, 'GenomicCache')) {
+    x <- x@.txdb
+  }
+  if (!is(x, "TranscriptDb")) {
+    stop("'x' must be a TranscriptDb object")
+  }
+
+  if (is.null(ids)) {
+    SQL <- "SELECT * FROM gene"
+    ids <- GenomicFeatures:::dbEasyQuery(GenomicFeatures:::txdbConn(x), SQL)
+    ids <- ids$gene_id
+  }
+  
+  symbols <- getSymbolFromEntrezId(x, ids, rm.unknown=FALSE)
+  data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
+}
+
 setMethod("seqnames", c(x="GenomicCache"),
 function(x) {
   seqnames(x@.txdb)
@@ -65,13 +84,27 @@ function(x, vals=NULL, columns=c("tx_id", "tx_name")) {
   })
 })
 
+setMethod("transcriptsBy", c(x="GenomicCache"),
+function(x, by=c("gene", "exon", "cds"), use.names=FALSE) {
+  by <- match.arg(by)
+  var <- generateCacheName('transcriptsBy', by=by, use.names=use.names)
+
+  cacheFetch(x, var, {
+    xc <- transcriptsBy(x@.txdb, by, use.names)
+    if (by == 'gene') {
+      ## Associate gene symbols to the id's
+      symbols <- id2symbol(x, names(xc))
+      values(xc) <- DataFrame(symbol=as.character(symbols$symbol))
+    }
+    xc
+  })
+})
+
 
 setMethod("exons", c(x="GenomicCache"),
 function(x, vals=NULL, columns="exon_id") {
   var <- generateCacheName('exons', vals=NULL, columns=columns)
-  cacheFetch(x, var, {
-    exons(x@.txdb, vals, columns)
-  })
+  cacheFetch(x, var, exons(x@.txdb, vals, columns))
 })
 
 
@@ -79,27 +112,21 @@ setMethod("exonsBy", c(x="GenomicCache"),
 function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   by <- match.arg(by)
   var <- generateCacheName('exonsBy', by=by, use.names=use.names)
-  cacheFetch(x, var, {
-    exonsBy(x@.txdb, by, use.names=use.names)
-  })
+  cacheFetch(x, var, exonsBy(x@.txdb, by, use.names=use.names))
 })
 
 
 setMethod("cds", c(x="GenomicCache"),
 function(x, vals=NULL, columns="cds_id") {
   var <- generateCacheName('cds', vals=vals, columns=columns)
-  cacheFetch(x, var, {
-    cds(x@.txdb, vals, columns)
-  })
+  cacheFetch(x, var, cds(x@.txdb, vals, columns))
 })
 
 setMethod("cdsBy", c(x="GenomicCache"),
 function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   by <- match.arg(by)
   var <- generateCacheName('cdsBy', by=by, use.names=use.names)
-  cacheFetch(x, var, {
-    cdsBy(x@.txdb, by, use.names=use.names)
-  })
+  cacheFetch(x, var, cdsBy(x@.txdb, by, use.names=use.names))
 })
 
 setGeneric("fiveUTRsBy",
@@ -132,14 +159,12 @@ function(x, by, use.names, flank.up=1000, flank.down=100, ...) {
 setMethod("fiveUTRsByTranscript", c(x="GenomicCache"),
 function(x, use.names=FALSE, ...) {
   var <- generateCacheName('fiveUTRsByTranscript', use.names=FALSE)
-  cacheFetch(x, 'utr5', {
-    fiveUTRsByTranscript(x@.txdb, use.names=use.names)    
-  })
+  cacheFetch(x, var, fiveUTRsByTranscript(x@.txdb, use.names=use.names))
 })
 
 
 setGeneric("threeUTRsBy",
-function(x, by=c('tx', 'gene'), use.names=FALSE...) {
+function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   standardGeneric("threeUTRsBy")
 })
 
@@ -169,9 +194,7 @@ function(x, by, use.names, flank.up=100, flank.down=1000, ...) {
 setMethod("threeUTRsByTranscript", c(x="GenomicCache"),
 function(x, use.names=FALSE, ...) {
   var <- generateCacheName('threeUTRsByTranscript', use.names=FALSE)
-  cacheFetch(x, 'utr3', {
-    threeUTRsByTranscript(x@.txdb, use.names=use.names)
-  })
+  cacheFetch(x, var, threeUTRsByTranscript(x@.txdb, use.names=use.names))
 })
 
 setMethod("genome", c(x="GenomicCache"),

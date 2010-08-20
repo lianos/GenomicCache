@@ -18,6 +18,17 @@ cacheFetch <- function(x, what, expr) {
   get(what, x@.cache, inherits=FALSE)
 }
 
+setMethod("clearCache", c(x="GenomicCache"),
+function(x, ...) {
+  verbose <- checkVerbose(...)
+  clear <- ls(x@.cache)
+  if (verbose) {
+    cat("  Clearing cache:", paste(clear, collapse=", "), "\n")
+  }
+  rm(list=clear, envir=x@.cache)
+  invisible(gc(reset=TRUE))  
+})
+
 generateCacheName <- function(base, ...) {
   params <- list(...)
   if (length(params) > 0) {
