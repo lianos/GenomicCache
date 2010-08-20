@@ -102,12 +102,68 @@ function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   })
 })
 
+setGeneric("fiveUTRsBy",
+function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
+  standardGeneric("fiveUTRsBy")
+})
+
+setMethod("fiveUTRsBy", c(x="GenomicCache"),
+function(x, by, use.names, flank.up=1000, flank.down=100, ...) {
+  by <- match.arg(by)
+  if (by == 'tx') {
+    utrs <- fiveUTRsByTranscript(x, use.names, ...)
+  } else {
+    
+  }
+  if (flank.up != 0) {
+    utrs <- endoapply(utrs, function(x) {
+      resize(x, width=width(x) + flank.up, fix='start')
+    })
+  }
+  if (flank.down != 0) {
+    utrs <- endoapply(utrs, function(x) {
+      resize(x, width=width(x) + flank.down, fix='end')
+    })
+  }
+  
+  utrs
+})
+
 setMethod("fiveUTRsByTranscript", c(x="GenomicCache"),
 function(x, use.names=FALSE, ...) {
   var <- generateCacheName('fiveUTRsByTranscript', use.names=FALSE)
   cacheFetch(x, 'utr5', {
     fiveUTRsByTranscript(x@.txdb, use.names=use.names)    
   })
+})
+
+
+setGeneric("threeUTRsBy",
+function(x, by=c('tx', 'gene'), use.names=FALSE...) {
+  standardGeneric("threeUTRsBy")
+})
+
+setMethod("threeUTRsBy", c(x="GenomicCache"),
+function(x, by, use.names, flank.up=100, flank.down=1000, ...) {
+  by <- match.arg(by)
+  if (by == 'tx') {
+    utrs <- threeUTRsByTranscript(x, use.names, ...)
+  } else {
+    
+  }
+  
+  if (flank.up != 0) {
+    utrs <- endoapply(utrs, function(x) {
+      resize(x, width=width(x) + flank.up, fix='start')
+    })
+  }
+  if (flank.down != 0) {
+    utrs <- endoapply(utrs, function(x) {
+      resize(x, width=width(x) + flank.down, fix='end')
+    })
+  }
+  
+  utrs
 })
 
 setMethod("threeUTRsByTranscript", c(x="GenomicCache"),
