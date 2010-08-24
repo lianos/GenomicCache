@@ -176,17 +176,18 @@ function(x, by, use.names, flank.up=100, flank.down=1000, ...) {
   } else {
     
   }
-  
-  if (flank.up != 0) {
-    utrs <- endoapply(utrs, function(x) {
-      resize(x, width=width(x) + flank.up, fix='start')
-    })
-  }
-  if (flank.down != 0) {
-    utrs <- endoapply(utrs, function(x) {
-      resize(x, width=width(x) + flank.down, fix='end')
-    })
-  }
+
+  ## These endoapply's take way too long
+  ## if (flank.up != 0) {
+  ##   utrs <- endoapply(utrs, function(x) {
+  ##     resize(x, width=width(x) + flank.up, fix='start')
+  ##   })
+  ## }
+  ## if (flank.down != 0) {
+  ##   utrs <- endoapply(utrs, function(x) {
+  ##     resize(x, width=width(x) + flank.down, fix='end')
+  ##   })
+  ## }
   
   utrs
 })

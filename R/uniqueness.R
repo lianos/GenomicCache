@@ -34,6 +34,9 @@ function(ranges, genome, chromosome, use.universal=FALSE,
   if (is.null(chromosome)) {
     stop("Need chromosome")
   }
+  if (is.null(use.universal)) {
+    use.universal <- FALSE
+  }
   
   are.unique <- logical(length(ranges))  
   widths <- unique(width(ranges))
