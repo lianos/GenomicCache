@@ -38,6 +38,7 @@ getAnnotationLibraryName <- function(genome='hg18') {
   lib.name
 }
 
+## TODO: Use getAnnMap("ENTREZID", annotation.source)
 getEgAnnotationMapFromVersion <- function(what, version='hg18') {
   what <- toupper(what)
   valid.maps <- c(
