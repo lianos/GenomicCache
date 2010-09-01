@@ -54,16 +54,46 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL, cache.dir=NULL) {
   
 }
 
-setGeneric("getGenesOnChromosome",
-function(x, chromosome, start=NULL, end=NULL, cache.dir=NULL) {
+setGeneric("genesOnChromosome",
+function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
+         overlap.type=c('any', 'start', 'end', 'within', 'equal'),
+         use.cache=FALSE, cache.dir=NULL, ...) {
   standardGeneric("getGenesOnChromosome")
 })
 
-setMethod("getGenesOnChromosome", c(x="GenomicCache"),
-function(x, chromosome, start, end, cache.dir=NULL) {
-  genes <- loadGFXGeneModels(x, chromosome, cache.dir=cache.dir)
-  if (is.null(genes)) {
-    stop("Build the gene models first!")
+
+## NOTE: genesOnChromosome is not done
+setMethod("genesOnChromosome", c(x="GenomicCache"),
+function(x, chromosome, start, end, maxgap, minoverlap, overlap.type,
+         use.cache, cache.dir, ...) {
+  xcripts <- transcripts(x)
+  if (is.null(end)) {
+    end <- seqlengths(xcripts)[[chromosome]]
   }
-  genes
+  
+  bounds <- switch(is(start)[1],
+    "NULL"=GRanges(seqname=chromosome, ranges=IRanges(start=1, end=end)),
+    numeric=GRanges(seqname=chromosome, ranges=IRanges(start=start, end=end)),
+    integer=GRanges(seqname=chromosome, ranges=IRanges(start=start, end=end)),
+    IRanges=GRanges(seqname=chromosome, ranges=start),
+    stop("Illegal value for `start`"))
+  
+  if (use.cache) {
+    genes <- loadGFXGeneModels(x, chromosome, cache.dir=cache.dir)
+    if (is.null(genes)) {
+      stop("Build the gene models first!")
+    }
+  } else {
+    possibly <- subsetByOverlaps(xcripts, bounds, maxgap, minoverlap,
+                                 overlap.type)
+    if (length(possibly) > 0) {
+      entrez <- getEntrezIdFromTranscriptId(x, values(possibly)$tx_name)
+      entrez <- unique(unlist(entrez))
+      symbols <- unlist(getSymbolFromEntrezId(x, entrez))
+      genes <- lapply(symbols, GFGene, .gc=x)
+      names(genes) <- sapply(genes, symbol)
+    }
+  }
+  
+
 })
