@@ -44,16 +44,17 @@ matchGFGeneCollapse <- function(x, collapse) {
 setGeneric("idealized", 
 function(x, by=c('all', 'cds', 'utr5', 'utr3'),
          collapse=c('cover', 'constitutive', 'first'),
-         cds.cover=c('min', 'max'), ...) {
+         cds.cover=c('min', 'max'), utr5.extend=0L, utr3.extend=0L, ...) {
   standardGeneric("idealized")
 })
 
 setMethod("idealized", c(x="GFGene"),
-function(x, by, collapse, cds.cover, ...) {
+function(x, by, collapse, cds.cover, utr5.extend, utr3.extend, ...) {
   by <- match.arg(by)
   cds.cover <- match.arg(cds.cover)
   collapse <- matchGFGeneCollapse(x, collapse)
   reducef <- switch(collapse, cover='union', 'intersect')
+  g.strand <- strand(x)
   
   .idealizedBy <- switch(by, all=.idealizedByAll, cds=.idealizedByCds,
                          utr5=.idealizedByUtr5, utr3=.idealizedByUtr3)
@@ -105,14 +106,14 @@ function(x, by, collapse, cds.cover, ...) {
   } else if (probably.rna || by == 'all') {
     gr <- GRanges(seqnames=rep(chromosome(x), length(ranges)),
                   ranges=ranges,
-                  strand=rep(strand(x), length(ranges)))
+                  strand=rep(g.strand, length(ranges)))
     values(gr) <- DataFrame(exon.anno=exon.anno)
     gr <- gr[order(start(gr))]
   } else {
     gr <- lapply(.exons, function(e) {
       g <- GRanges(seqnames=rep(chromosome(x), length(e)),
                    ranges=e,
-                   strand=rep(strand(x), length(e)))
+                   strand=rep(g.strand, length(e)))
       values(g) <- DataFrame(exon.anno=rep(by, length(g)))
       if (length(g) > 0) {
         g[order(start(g))]
@@ -120,6 +121,56 @@ function(x, by, collapse, cds.cover, ...) {
       g
     })
     gr <- GRangesList(gr)
+  }
+
+  if (utr5.extend > 0) {
+    if (probably.rna) {
+      
+    } else {
+      take <- which(values(gr)$exon.anno == 'utr5')
+      if (length(take) > 0) {
+        if (g.strand == '+') {
+          ext.end <- start(gr[take[1L]]) - 1L
+          ext.start <- ext.end - utr5.extend + 1
+          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                             ranges=IRanges(start=ext.start, end=ext.end))
+          values(utr.ext) <- DataFrame(exon.anno='utr5*')
+          gr <- c(utr.ext, gr)
+        } else {
+          ext.start <- end(gr[take[length(take)]]) + 1L
+          ext.end <- ext.start + utr5.extend - 1L
+          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                             ranges=IRanges(start=ext.start, end=ext.end))
+          values(utr.ext) <- DataFrame(exon.anno='utr5*')
+          gr <- c(gr, utr.ext)
+        }
+      }
+    }
+  }
+  
+  if (utr3.extend > 0) {
+    if (probably.rna) {
+      
+    } else {
+      take <- which(values(gr)$exon.anno == 'utr3')
+      if (length(take) > 0) {
+        if (g.strand == '+') {
+          ext.start <- end(gr[take[length(take)]]) + 1L
+          ext.end <- ext.start + utr3.extend - 1L
+          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                             ranges=IRanges(start=ext.start, end=ext.end))
+          values(utr.ext) <- DataFrame(exon.anno='utr3*')
+          gr <- c(gr, utr.ext)
+        } else {
+          ext.end <- start(gr[take[1L]]) - 1L
+          ext.start <- ext.end - utr3.extend + 1
+          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                             ranges=IRanges(start=ext.start, end=ext.end))
+          values(utr.ext) <- DataFrame(exon.anno='utr3*')
+          gr <- c(utr.ext, gr)
+        }
+      }
+    }
   }
   
   gr
