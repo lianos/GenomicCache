@@ -54,7 +54,7 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL, cache.dir=NULL) {
   
 }
 
-setGeneric("genesOnChromosome",
+setGeneric("getGenesOnChromosome",
 function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
          overlap.type=c('any', 'start', 'end', 'within', 'equal'),
          use.cache=FALSE, cache.dir=NULL, ...) {
@@ -63,7 +63,7 @@ function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
 
 
 ## NOTE: genesOnChromosome is not done
-setMethod("genesOnChromosome", c(x="GenomicCache"),
+setMethod("getGenesOnChromosome", c(x="GenomicCache"),
 function(x, chromosome, start, end, maxgap, minoverlap, overlap.type,
          use.cache, cache.dir, ...) {
   xcripts <- transcripts(x)

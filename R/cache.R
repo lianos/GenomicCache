@@ -10,15 +10,17 @@
 ##' cacheFetch(x, 'transcripts', {
 ##'   transcripts(x@.transcripts, by='tx)
 ##' })
-cacheFetch <- function(x, what, expr) {
+
+setMethod("cacheFetch", c(x="ANY"),
+function(x, what, expr) {
   if (!exists(what, x@.cache, inherits=FALSE)) {
     value <- eval.parent(expr)
     assign(what, value, x@.cache, inherits=FALSE)
   }
   get(what, x@.cache, inherits=FALSE)
-}
+})
 
-setMethod("clearCache", c(x="GenomicCache"),
+setMethod("clearCache", c(x="ANY"),
 function(x, ...) {
   verbose <- checkVerbose(...)
   clear <- ls(x@.cache)

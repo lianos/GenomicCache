@@ -31,8 +31,10 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
   txdb <- loadFeatures(txdb.path)
   attr(txdb, 'path') <- txdb.path
   
+  genome <- subset(metadata(txdb), name == "Genome")$value
+  
   gc <- new('GenomicCache',
-            .genome=genome(txdb),
+            .genome=genome,
             .path=path,
             .txdb=txdb)
   
@@ -203,13 +205,13 @@ function(x, ...) {
   x@.genome
 })
 
-setMethod("dataSource", c(x="GenomicCache"),
-function(x, ...) {
-  dataSource(x@.txdb)
+setMethod("dataSource", c(object="GenomicCache"),
+function(object, ...) {
+  subset(metadata(object@.txdb), name == "Data source")$value
 })
 
-setMethod("annotationSource", c(x="GenomicCache"),
-function(x, ...) {
-  annotationSource(x@.txdb)
+setMethod("annotationSource", c(object="GenomicCache"),
+function(object, ...) {
+  subset(metadata(object@.txdb), name == "UCSC Table")$value
 })
 

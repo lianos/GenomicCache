@@ -1,3 +1,10 @@
+checkVerbose <- function(...) {
+  verbose <- list(...)$verbose
+  if (is.null(verbose)) verbose <- options()$verbose
+  verbose
+}
+
+
 ##' Takes a character vector and tacks on a .1, .2, etc. to any duplicate
 ##' names until they are all made unique
 ##'

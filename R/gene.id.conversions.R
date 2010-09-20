@@ -1,10 +1,30 @@
-setGeneric("getEntrezIdFromSymbol", function(x, id, rm.unknown=TRUE) {
+.getAnnoPackageName <- function(from, package=NULL) {
+  is.anno.package <- length(grep('^org\\..*\\.db$', from) == 1L)
+  if (is.anno.package) {
+    ## this is probably the package name itself
+    if (!require(from, character.only=TRUE)) {
+      stop("Unknown package: ", from)
+    }
+    from
+  } else {
+    ## probably the genome
+    annotationPackage(from, package=package)
+  }
+}
+
+
+###############################################################################
+# getEntrezIdFromSymbol
+###############################################################################
+setGeneric("getEntrezIdFromSymbol",
+function(x, id, anno.source=NULL, rm.unknown=TRUE) {
   standardGeneric("getEntrezIdFromSymbol")
 })
 
-setMethod("getEntrezIdFromSymbol", c(x="TranscriptDb"),
-function(x, id, rm.unknown) {
-  symbol2eg <- getEgAnnotationMapFromVersion("SYMBOL2EG", genome(x))
+setMethod("getEntrezIdFromSymbol", c(x="character"),
+function(x, id, anno.source=NULL, rm.unknown) {
+  x <- .getAnnoPackageName(x)
+  symbol2eg <- getAnnMap("SYMBOL2EG", x)
   ids <- mget(id, symbol2eg, ifnotfound=NA)
   
   if (is.null(ids)) {
@@ -15,7 +35,7 @@ function(x, id, rm.unknown) {
   
   if (length(unk) > 0) {
     ## Look in alias
-    alias2eg <- getEgAnnotationMapFromVersion("ALIAS2EG", genome(x))
+    alias2eg <- getAnnMap("ALIAS2EG", x)
     ids2 <- mget(id[unk], alias2eg, ifnotfound=NA)
 
     if (rm.unknown) {
@@ -43,23 +63,37 @@ function(x, id, rm.unknown) {
   ids
 })
 
-setMethod("getEntrezIdFromSymbol", c(x="GenomicCache"),
+
+setMethod("getEntrezIdFromSymbol", c(x="TranscriptDb"),
 function(x, id, rm.unknown) {
-  getEntrezIdFromSymbol(x@.txdb, id, rm.unknown)
+  genome <- subset(metadata(txdb), name == "Genome")$value
+  getEntrezIdFromSymbol(genome, id, rm.unknown)
 })
 
-setGeneric("getEntrezIdFromTranscriptId", function(x, id, rm.unknown=TRUE) {
+setMethod("getEntrezIdFromSymbol", c(x="GenomicCache"),
+function(x, id, rm.unknown) {
+  getEntrezIdFromSymbol(genome(x), id, rm.unknown, genome=genome)
+})
+
+
+###############################################################################
+# getEntrezIdFromTranscriptId
+###############################################################################
+setGeneric("getEntrezIdFromTranscriptId",
+function(x, id, anno.source, rm.unknown=TRUE) {
   standardGeneric("getEntrezIdFromTranscriptId")
 })
-setMethod("getEntrezIdFromTranscriptId", c(x="TranscriptDb"),
-function(x, id, rm.unknown) {
-  asource <- annotationSource(x)
-  if (asource == 'ensGene') {
-    map <- revmap(getEgAnnotationMapFromVersion('ENSEMBLTRANS', genome(x)))
-  } else if (asource == 'refGene') {
-    map <- getEgAnnotationMapFromVersion('REFSEQ2EG', genome(x))
+
+setMethod("getEntrezIdFromTranscriptId", c(x="character"),
+function(x, id, anno.source, rm.unknown) {
+  x <- .getAnnoPackageName(x)
+  
+  if (anno.source == 'ensGene') {
+    map <- revmap(getAnnMap('ENSEMBLTRANS', x))
+  } else if (anno.source == 'refGene') {
+    map <- getAnnMap('REFSEQ2EG', x)
   } else {
-    stop("Unknown annotation source (UCSC Table): ", asource)
+    stop("Unknown annotation source (UCSC Table): ", anno.source)
   }
   
   ids <- mget(id, map, ifnotfound=NA)
@@ -85,22 +119,37 @@ function(x, id, rm.unknown) {
 })
 
 setMethod("getEntrezIdFromTranscriptId", c(x="GenomicCache"),
-function(x, id, rm.unknown) {
-  getEntrezIdFromTranscriptId(x@.txdb, id, rm.unknown)
+function(x, id, anno.source=annotationSource(x), rm.unknown) {
+  getEntrezIdFromTranscriptId(genome(x), id, anno.source, rm.unknown)
+})
+
+setMethod("getEntrezIdFromTranscriptId", c(x="TranscriptDb"),
+function(x, id, anno.source, rm.unknown) {
+  if (missing(anno.source)) {
+    anno.source <- subset(metadata(object@.txdb), name == "UCSC Table")$value
+  }
+  genome <- subset(metadata(txdb), name == "Genome")$value
+  getEntrezIdFromTranscriptId(genome, id, anno.source, rm.unknown)
 })
 
 
-setGeneric("getEntrezIdFromGeneId", function(x, id, rm.unknown=TRUE) {
+###############################################################################
+# getEntrezIdFromGeneId
+###############################################################################
+setGeneric("getEntrezIdFromGeneId",
+function(x, id, anno.source, rm.unknown=TRUE) {
   standardGeneric("getEntrezIdFromGeneId")
 })
-setMethod("getEntrezIdFromGeneId", c(x="TranscriptDb"),
-function(x, id, rm.unknown) {
-  asource <- annotationSource(x)
-  if (asource == 'refGene') {
+
+setMethod("getEntrezIdFromGeneId", c(x="character"),
+function(x, id, anno.source, rm.unknown) {
+  x <- .getAnnoPackageName(x)
+  
+  if (anno.source == 'refGene') {
     warning("Assuming gne id is its symbol for RefSeq")
-    ids <- getEntrezIdFromSymbol(x, id)
-  } else if (asource == 'ensGene') {
-    map <- getEgAnnotationMapFromVersion('ENSEMBL2EG', genome(x))
+    ids <- getEntrezIdFromSymbol(x, id, anno.source, rm.unknown)
+  } else if (anno.source == 'ensGene') {
+    map <- getAnnMap('ENSEMBL2EG', x)
     ids <- mget(id, map, ifnotfound=NA)
   }
 
@@ -124,22 +173,36 @@ function(x, id, rm.unknown) {
   ids
 })
 
-
 setMethod("getEntrezIdFromGeneId", c(x="GenomicCache"),
-function(x, id, rm.unknown) {
-  getEntrezIdFromGeneId(x@.txdb, id, rm.unknown)
+function(x, id, anno.source=annotationSource(x), rm.unknown) {
+  getEntrezIdFromGeneId(genome(x), id, anno.source, rm.unknown)
 })
 
-setGeneric("getTranscriptIdFromEntrezId", function(x, id, rm.unknown=TRUE) {
+setMethod("getEntrezIdFromGeneId", c(x="TranscriptDb"),
+function(x, id, anno.source, rm.unknown) {
+  if (missing(anno.source)) {
+    anno.source <- subset(metadata(object@.txdb), name == "UCSC Table")$value
+  }
+  genome <- subset(metadata(txdb), name == "Genome")$value
+  getEntrezIdFromGeneId(genome, id, anno.source, rm.unknown)
+})
+
+
+###############################################################################
+# getTranscriptIdFromEntrezId
+###############################################################################
+setGeneric("getTranscriptIdFromEntrezId",
+function(x, id, anno.source, rm.unknown=TRUE) {
   standardGeneric("getTranscriptIdFromEntrezId")
 })
 
-setMethod("getTranscriptIdFromEntrezId", c(x="TranscriptDb"),
-function(x, id, rm.unknown) {
-  asource <- annotationSource(x)
-  if (asource == 'ensGene') {
+setMethod("getTranscriptIdFromEntrezId", c(x="character"),
+function(x, id, anno.source, rm.unknown) {
+  x <- .getAnnoPackageName(x)
+  
+  if (anno.source == 'ensGene') {
     map <- getEgAnnotationMapFromVersion('ENSEMBLTRANS', genome(x))
-  } else if (asource == 'refGene') {
+  } else if (anno.source == 'refGene') {
     map <- revmap(getEgAnnotationMapFromVersion('REFSEQ2EG', genome(x)))
   } else {
     stop("Unknown annotation source (UCSC Table): ", asource)
@@ -173,12 +236,15 @@ function(x, id, rm.unknown) {
   ids
 })
 
-
 setMethod("getTranscriptIdFromEntrezId", c(x="GenomicCache"),
 function(x, id, rm.unknown) {
   getTranscriptIdFromEntrezId(x@.txdb, id)
 })
 
+
+###############################################################################
+# getSymbolFromEntrezId
+###############################################################################
 setGeneric("getSymbolFromEntrezId", function(x, id, rm.unknown=TRUE) {
   standardGeneric("getSymbolFromEntrezId")
 })
@@ -214,6 +280,9 @@ function(x, id, rm.unknown) {
 })
 
 
+###############################################################################
+# getGeneIdFromEntrezId
+###############################################################################
 setGeneric("getGeneIdFromEntrezId", function(x, id, rm.unknown=TRUE) {
  standardGeneric("getGeneIdFromEntrezId") 
 })

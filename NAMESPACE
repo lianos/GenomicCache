@@ -1,2 +1,64 @@
-importFrom(GenomicFeatures,
-           "txdbConn")
+import(IRanges)
+import(GenomicRanges)
+import(GenomicFeatures)
+
+importFrom(annotate,
+  getAnnMap,
+  dataSource,
+)
+
+exportClasses(
+  GenomicCache,
+  GFGene,
+  RefSeqGene,
+  EnsemblGene,
+  AceviewGene
+)
+
+exportMethods(
+  duplicate,
+  annotationPackage,
+  getEgAnnotationMap,
+  annotationSource,
+  genome,
+  clearCache,
+  dispose,
+  chromosome,
+  chromosomes,
+  dataSource,  
+  txBounds,
+  cdsBounds,
+  utr5,
+  utr3,
+  getBsGenome,
+  isProteinCoding,
+  id,
+  symbol,
+  chromosome,
+  
+  idealized,
+  
+  getEntrezIdFromSymbol,
+  getEntrezIdFromTranscriptId,
+  getEntrezIdFromGeneId,
+  getTranscriptIdFromEntrezId,
+  getSymbolFromEntrezId,
+  getGeneIdFromEntrezId,
+  
+  getGenesOnChromosome,
+  threeUTRsBy,
+  fiveUTRsBy,
+  
+  flagUniqueRanges,
+  getUniquenessMap
+)
+
+export(
+  GFGene,
+  GenomicCache,
+  
+  generateGFXGeneModels,
+  
+  id2symbol
+ 
+)

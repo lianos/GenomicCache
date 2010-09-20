@@ -1,11 +1,13 @@
 setClassUnion("MaybeTranscriptDb", c('TranscriptDb', 'NULL'))
-setClass("GenomicFeaturesX", contains="VIRTUAL")
+setClass("GenomicFeaturesX", 
+         representation(.genome='character',
+                        .cache='environment'),
+         contains="VIRTUAL")
 
 setClass("GenomicCache",
-         representation(.genome='character',
-                        .path='character',
-                        .txdb='MaybeTranscriptDb',
-                        .cache="environment"))
+         representation(.path='character',
+                        .txdb='MaybeTranscriptDb'),
+         contains="GenomicFeaturesX")
 
 setClass("GFGene",
          representation(.id='character',
@@ -17,9 +19,8 @@ setClass("GFGene",
                         .cds="GRangesList",
                         .utr5="GRangesList",
                         .utr3="GRangesList",
-                        .transcript.names="character",
-                        .genome='character',
-                        .cache='environment'))
+                        .transcript.names="character"),
+         contains="GenomicFeaturesX")
 
 setClass("RefSeqGene", contains="GFGene")
 setClass("EnsemblGene", contains="GFGene")
@@ -29,15 +30,41 @@ setClass("AceviewGene", contains="GFGene")
 ## Methods : Generic (work on all GenomicFeaturesX-type objects)
 
 setGeneric("duplicate", function(x, ...) standardGeneric("duplicate"))
+
 setGeneric("getEgAnnotationMap", function(x, what, ...) {
   standardGeneric("getEgAnnotationMap")
 })
-setGeneric("annotationSource", function(x, ...) {
-  standardGeneric("annotationSource")
+
+
+setGeneric("annotationPackage", function(x, ...) {
+  standardGeneric("annotationPackage")
 })
+
+setMethod("annotationPackage", c(x="GenomicFeaturesX"),
+function(x, package=NULL) {
+  ## You can pass the annotation package to NULL case you have a corner case
+  ## that I haven't thought of.
+  annotationPackages(genome(x), package=package)
+})
+
+setMethod("annotationPackage", c(x="character"),
+function(x, package=NULL) {
+  if (is.null(package)) {
+    package <- switch(x,
+      hg18='org.Hs.eg.db', hg19='org.Hs.eg.db',     ## Human
+      mm8='org.Mm.eg.db', mm9='org.Mm.eg.db',       ## Mouse
+      rn4='org.Rn.eg.db', rn3='org.Rn.eg.db',       ## Rat
+      dm3='org.Dm.eg.db',                           ## Fly
+      ce4='org.Ce.eg.db', ce6='org.Ce.eg.db',       ## Worm
+      stop("Unknown genome -- provide the annotation package in `package`")
+    )
+  }
+  package
+})
+
 setGeneric("genome", function(x, ...) standardGeneric("genome"))
 
-##setGeneric("cacheFetch", function(x, what, expr) standardGeneric("cachFetch"))
+setGeneric("cacheFetch", function(x, what, expr) standardGeneric("cacheFetch"))
 setGeneric("clearCache", function(x, ...) standardGeneric("clearCache"))
 setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
 
@@ -51,7 +78,6 @@ setGeneric("chromosomes", function(x, ...) {
   standardGeneric("chromosomes")
 })
 
-setGeneric("dataSource", function(x, ...) standardGeneric("dataSource"))
 setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 
 ################################################################################

@@ -297,7 +297,8 @@ function(x, ...) {
   end(ranges(x, ...))
 })
 
-setMethod("annotationSource", c(x="GFGene"),
+## imported from annotate
+setMethod("annotationSource", c(object="GFGene"),
 function(x) {
   switch(class(x)[1],
     RefSeqGene='refGene',
