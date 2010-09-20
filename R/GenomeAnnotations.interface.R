@@ -95,5 +95,5 @@ function(x, chromosome, start, end, maxgap, minoverlap, overlap.type,
     }
   }
   
-
+  genes
 })
