@@ -206,12 +206,12 @@ function(x, ...) {
 })
 
 setMethod("dataSource", c(object="GenomicCache"),
-function(object, ...) {
+function(object) {
   subset(metadata(object@.txdb), name == "Data source")$value
 })
 
 setMethod("annotationSource", c(object="GenomicCache"),
-function(object, ...) {
+function(object) {
   subset(metadata(object@.txdb), name == "UCSC Table")$value
 })
 

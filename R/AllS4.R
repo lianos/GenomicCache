@@ -35,6 +35,9 @@ setGeneric("getEgAnnotationMap", function(x, what, ...) {
   standardGeneric("getEgAnnotationMap")
 })
 
+setGeneric("annotationSource", function(object) {
+  standardGeneric("annotationSource")
+})
 
 setGeneric("annotationPackage", function(x, ...) {
   standardGeneric("annotationPackage")
@@ -70,7 +73,20 @@ setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
 
 ################################################################################
 ## Methods: Gene
-setGeneric("chromosome", function(object, ...) standardGeneric("chromosome"))
+setGeneric("entrezId", function(x, ...) standardGeneric("entrezId"))
+setGeneric("cdsBounds", function(x, ...) standardGeneric("cdsBounds"))
+setGeneric("chromosome", function(x, ...) standardGeneric("chromosome"))
+setGeneric("id", function(x, ...) standardGeneric("id"))
+setGeneric("symbol", function(x, ...) standardGeneric("symbol"))
+setGeneric("txBounds", function(x, ...) standardGeneric("txBounds"))
+setGeneric("txNames", function(x, ...) {
+  standardGeneric("txNames")
+})
+setGeneric("utr5", function(x, ...) standardGeneric("utr5"))
+setGeneric("utr3", function(x, ...) standardGeneric("utr3"))
+setGeneric("isProteinCoding", function(x, ...) {
+  standardGeneric("isProteinCoding")
+})
 
 ################################################################################
 ## Methods: GenomicCache + TranscriptDb

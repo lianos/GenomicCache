@@ -56,10 +56,11 @@ GFGene <- function(..., .gc=NULL) {
     }
   }
   
-  a.source <- annotationSource(.gc)
-  class.name <- switch(a.source, refGene="RefSeqGene",
+  anno.source <- annotationSource(.gc)
+  class.name <- switch(anno.source, refGene="RefSeqGene",
                        ensGene="EnsemblGene", aceGene="AceviewGene",
-                       stop("Unknown source: ", a.source))
+                       stop("Unknown source: ", anno.source))
+  genome <- genome(.gc)
   
   id <- takeFromListByType(args, 'character', index=TRUE)
   if (is.null(id)) {
@@ -69,24 +70,25 @@ GFGene <- function(..., .gc=NULL) {
   id.type <- names(args)[id]
   id <- args[[id]]
   if (is.null(id.type)) {
-    id.type <- .guessGeneIdType(id, annotationSource(.gc))
+    id.type <- .guessGeneIdType(id, anno.source)
   }
 
   ## Necessary monkey business to "do the right thing" in order to get
   ## the correct entrez.id and symbol for this gene
   symbol <- NULL
+  gene.id <- NULL
   if (id.type == 'symbol') {
     symbol <- id
-    entrez.id <- getEntrezIdFromSymbol(.gc, id)
+    entrez.id <- getEntrezIdFromSymbol(genome, id, anno.source)
   } else {
     if (class.name == 'EnsemblGene') {
       if (id.type == 'id') {
-        entrez.id <- getEntrezIdFromGeneId(.gc, id)
+        entrez.id <- getEntrezIdFromGeneId(genome, id, anno.source)
       } else {
-        entrez.id <- getEntrezIdFromTranscriptId(.gc, id)
+        entrez.id <- getEntrezIdFromTranscriptId(genome, id, anno.source)
       }
     } else {
-      entrez.id <- getEntrezIdFromTranscriptId(.gc, id)      
+      entrez.id <- getEntrezIdFromTranscriptId(genome, id, anno.source)
     }
   }
 
@@ -101,14 +103,20 @@ GFGene <- function(..., .gc=NULL) {
   }
   
   if (is.null(symbol)) {
-    symbol <- getSymbolFromEntrezId(.gc, entrez.id)
+    symbol <- getSymbolFromEntrezId(genome, entrez.id, anno.source)
+  }
+  
+  if (is.null(gene.id)) {
+    gene.id <- switch(anno.source, refGene=symbol,
+                      ensGene=getGeneIdFromEntrezId(.gc, entrez.id),
+                      aceGene=symbol, stop("Unknown anno.source"))
   }
   
   .exons <- exonsBy(.gc, 'tx')
   .transcripts <- transcripts(.gc)
 
   ## Get all transcript IDs associated with this gene
-  tx.name <- getTranscriptIdFromEntrezId(.gc, entrez.id)
+  tx.name <- getTranscriptIdFromEntrezId(genome, entrez.id, anno.source)
   xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
   xm <- values(xcripts)
   tx.ids <- as.character(xm$tx_id)
@@ -143,8 +151,8 @@ GFGene <- function(..., .gc=NULL) {
   values(g.utr3) <- meta
   
   new(class.name,
-      .id=id,
       .entrez.id=entrez.id,
+      .id=gene.id,
       .symbol=symbol,
       .strand=as.factor(strand(xcripts)[1]),
       .chromosome=as.factor(seqnames(xcripts)[1]),
@@ -152,7 +160,7 @@ GFGene <- function(..., .gc=NULL) {
       .cds=g.cds,
       .utr5=g.utr5,
       .utr3=g.utr3,
-      .genome=genome(.gc)
+      .genome=genome
       )
 }
 
@@ -181,7 +189,6 @@ function(x) {
   length(x@.exons)
 })
 
-setGeneric("txBounds", function(x, ...) standardGeneric("txBounds"))
 setMethod("txBounds", c(x="GFGene"),
 function(x, ...) {
   bounds <- unlist(endoapply(transcripts(x), function(xx) range(xx)),
@@ -192,7 +199,6 @@ function(x, ...) {
 })
 
 ##' Returns a GRanges object
-setGeneric("cdsBounds", function(x, ...) standardGeneric("cdsBounds"))
 setMethod("cdsBounds", c(x="GFGene"),
 function(x, ...) {
   bounds <- unlist(endoapply(cds(x), function(xx) range(xx)),
@@ -208,13 +214,11 @@ function(x, ...) {
   x@.cds
 })
 
-setGeneric("utr5", function(x, ...) standardGeneric("utr5"))
 setMethod("utr5", c(x="GFGene"),
 function(x, ...) {
   x@.utr5
 })
 
-setGeneric("utr3", function(x, ...) standardGeneric("utr3"))
 setMethod("utr3", c(x="GFGene"),
 function(x, ...) {
   x@.utr3
@@ -242,33 +246,31 @@ function(x, ...) {
 })
 
 ############################################################## Simple Accessors
-setGeneric("isProteinCoding", function(x, ...) {
-  standardGeneric("isProteinCoding")
-})
-setMethod("isProteinCoding", c(x="GFGene"),
+setMethod("entrezId", c(x="GFGene"),
 function(x, ...) {
-  sapply(cds(x), function(exons) length(exons) > 0)
+  x@.entrez.id
 })
 
-setGeneric("id", function(x, ...) standardGeneric("id"))
 setMethod("id", c(x="GFGene"),
 function(x, ...) {
   x@.id
 })
 
+setMethod("isProteinCoding", c(x="GFGene"),
+function(x, ...) {
+  sapply(cds(x), function(exons) length(exons) > 0)
+})
 
 setMethod("genome", c(x="GFGene"),
 function(x, ...) {
   x@.genome
 })
 
-setGeneric("symbol", function(x, ...) standardGeneric("symbol"))
 setMethod("symbol", c(x="GFGene"),
 function(x, ...) {
   x@.symbol
 })
 
-setGeneric("chromosome", function(x, ...) standardGeneric("chromosome"))
 setMethod("chromosome", c(x="GFGene"), 
 function(x, as.DNAString=FALSE, unmasked=TRUE, ...) {
   chr <- as.character(x@.chromosome)[1]
@@ -297,10 +299,9 @@ function(x, ...) {
   end(ranges(x, ...))
 })
 
-## imported from annotate
 setMethod("annotationSource", c(object="GFGene"),
-function(x) {
-  switch(class(x)[1],
+function(object) {
+  switch(class(object)[1],
     RefSeqGene='refGene',
     EnsemblGene='ensGene',
     AceviewGene='aceGene')
@@ -309,10 +310,6 @@ function(x) {
 setMethod("transcripts", c(x="GFGene"),
 function(x, ...) {
   x@.exons
-})
-
-setGeneric("txNames", function(x, ...) {
-  standardGeneric("txNames")
 })
 
 setMethod("txNames", c(x="GFGene"),
