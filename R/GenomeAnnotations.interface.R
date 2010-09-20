@@ -6,7 +6,7 @@
 }
 
 loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
-  cache.dir <- GFXCacheDir(cache.dir, 'gene.models')
+  cache.dir <- cacheDir(gcache, 'gene.models')
   file.name <- .geneCacheFileName(gcache, chromosome)
   fpath <- file.path(cache.dir, file.name)
   if (is.na(file.info(fpath)$isdir)) {
@@ -18,9 +18,9 @@ loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
 
 ## ~ 6 Hours for RefSeq hg18
 ## ~ 8.3 hours for Ensembl hg18
-generateGFXGeneModels <- function(gcache, chromosomes=NULL, cache.dir=NULL) {
+generateGFXGeneModels <- function(gcache, chromosomes=NULL) {
   if (!require(plyr)) stop("Plyr is used here")
-  cache.dir <- GFXCacheDir(cache.dir, 'gene.models')
+  cache.dir <- cacheDir(gcache, 'gene.models')
   
   if (is.null(chromosomes)) {
     chromosomes <- seqnames(gcache)
@@ -57,7 +57,7 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL, cache.dir=NULL) {
 setGeneric("getGenesOnChromosome",
 function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
          overlap.type=c('any', 'start', 'end', 'within', 'equal'),
-         use.cache=FALSE, cache.dir=NULL, ...) {
+         use.cache=TRUE, ...) {
   standardGeneric("getGenesOnChromosome")
 })
 
@@ -65,35 +65,73 @@ function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
 ## NOTE: genesOnChromosome is not done
 setMethod("getGenesOnChromosome", c(x="GenomicCache"),
 function(x, chromosome, start, end, maxgap, minoverlap, overlap.type,
-         use.cache, cache.dir, ...) {
+         use.cache, cache.dir=cacheDir(x), ...) {
   xcripts <- transcripts(x)
-  if (is.null(end)) {
-    end <- seqlengths(xcripts)[[chromosome]]
-  }
-  
-  bounds <- switch(is(start)[1],
-    "NULL"=GRanges(seqname=chromosome, ranges=IRanges(start=1, end=end)),
-    numeric=GRanges(seqname=chromosome, ranges=IRanges(start=start, end=end)),
-    integer=GRanges(seqname=chromosome, ranges=IRanges(start=start, end=end)),
-    IRanges=GRanges(seqname=chromosome, ranges=start),
-    stop("Illegal value for `start`"))
-  
   if (use.cache) {
     genes <- loadGFXGeneModels(x, chromosome, cache.dir=cache.dir)
     if (is.null(genes)) {
       stop("Build the gene models first!")
     }
+    
+    if (!is.null(start) || !is.null(end)) {
+      ## NOTE: This is poorly implemented
+      if (is.null(start)) {
+        start <- 1L
+      }
+      if (is.null(end)) {
+        end <- xcripts[[chromosome]]
+      }
+      tx.bounds <- txBounds(x, chromosome, .genes=genes)
+      subset.bounds <- IRangest(start, end)
+      o <- findOverlaps(tx.bounds, subset.bounds, maxgap=maxgap,
+                        minoverlap=minoverlap, type=overlap.type)
+      genes <- genes[queryHits(o)]
+    }
+    
+    return(genes)
   } else {
-    possibly <- subsetByOverlaps(xcripts, bounds, maxgap, minoverlap,
-                                 overlap.type)
-    if (length(possibly) > 0) {
-      entrez <- getEntrezIdFromTranscriptId(x, values(possibly)$tx_name)
-      entrez <- unique(unlist(entrez))
-      symbols <- unlist(getSymbolFromEntrezId(x, entrez))
-      genes <- lapply(symbols, GFGene, .gc=x)
-      names(genes) <- sapply(genes, symbol)
+    stop("getGenesOnChromosome w/o cache not implemented yet.")
+
+    if (is.null(end)) {
+      end <- seqlengths(xcripts)[[chromosome]]
+    }
+
+    bounds <- switch(is(start)[1],
+      "NULL"=GRanges(seqname=chromosome, ranges=IRanges(start=1, end=end)),
+      numeric=GRanges(seqname=chromosome, ranges=IRanges(start=start, end=end)),
+      integer=GRanges(seqname=chromosome, ranges=IRanges(start=start, end=end)),
+      IRanges=GRanges(seqname=chromosome, ranges=start),
+      stop("Illegal value for `start`"))
+
+    if (use.cache) {
+    } else {
+      possibly <- subsetByOverlaps(xcripts, bounds, maxgap, minoverlap,
+                                   overlap.type)
+      if (length(possibly) > 0) {
+        entrez <- getEntrezIdFromTranscriptId(x, values(possibly)$tx_name)
+        entrez <- unique(unlist(entrez))
+        symbols <- unlist(getSymbolFromEntrezId(x, entrez))
+        genes <- lapply(symbols, GFGene, .gc=x)
+        names(genes) <- sapply(genes, symbol)
+      }
     }
   }
-  
-  genes
 })
+
+setMethod("txBounds", c(x="GenomicCache"),
+function(x, chromosome, .genes=NULL, ...) {
+  var.name <- paste('txBounds', chromosome, sep=".")
+  cacheFetch(x, var.name, {
+    if (is.null(.genes)) {
+      .genes <- getGenesOnChromosome(x, chromosome)
+    }
+    txBoundsFromGeneList(.genes)
+  })
+})
+
+txBoundsFromGeneList <- function(genes) {
+  tx.bounds <- RangesList(lapply(genes, function(g) {
+    range(unlist(ranges(transcripts(g))))
+  }))
+  unlist(tx.bounds)
+}

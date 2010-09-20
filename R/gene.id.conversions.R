@@ -1,23 +1,3 @@
-##' Returns the bioconductor annoation package name for the given genome.
-##' 
-##' @param from A character string naming the genome, ie. hg18, mm9, etc.
-##' The function also checks to see if it is the name of the package itself.
-##' @param package Passed through to the \code{\link{annotationPackage}}
-##' function. 
-.getAnnoPackageName <- function(from, package=NULL) {
-  is.anno.package <- length(grep('^org\\..*\\.db$', from) == 1L)
-  if (is.anno.package) {
-    ## this is probably the package name itself
-    if (!require(from, character.only=TRUE)) {
-      stop("Unknown package: ", from)
-    }
-    from
-  } else {
-    ## probably the genome
-    annotationPackage(from, package=package)
-  }
-}
-
 ## These funcions do "cross reference" look ups for transcript ids, symbol
 ## names gene ids, etc. The "base" function for each receives a character
 ## value for `x` which should be the genome name (ie. hg18, mm9, etc.)
@@ -41,7 +21,7 @@ function(x, id, anno.source=NULL, rm.unknown=TRUE) {
 
 setMethod("getEntrezIdFromSymbol", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
-  x <- .getAnnoPackageName(x)
+  x <- getAnnoPackageName(x)
   symbol2eg <- getAnnMap("SYMBOL2EG", x)
   ids <- mget(id, symbol2eg, ifnotfound=NA)
   
@@ -104,7 +84,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 
 setMethod("getEntrezIdFromTranscriptId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
-  x <- .getAnnoPackageName(x)
+  x <- getAnnoPackageName(x)
   
   if (anno.source == 'ensGene') {
     map <- revmap(getAnnMap('ENSEMBLTRANS', x))
@@ -162,7 +142,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 
 setMethod("getEntrezIdFromGeneId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
-  x <- .getAnnoPackageName(x)
+  x <- getAnnoPackageName(x)
   
   if (anno.source == 'refGene') {
     message("Assuming gene id is its symbol for RefSeq")
@@ -218,7 +198,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 
 setMethod("getTranscriptIdFromEntrezId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
-  x <- .getAnnoPackageName(x)
+  x <- getAnnoPackageName(x)
   
   if (anno.source == 'ensGene') {
     map <- getAnnMap('ENSEMBLTRANS', x)
@@ -281,7 +261,7 @@ setGeneric("getSymbolFromEntrezId", function(x, id, anno.source, rm.unknown=TRUE
 
 setMethod("getSymbolFromEntrezId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
-  x <- .getAnnoPackageName(x)
+  x <- getAnnoPackageName(x)
   map <- getAnnMap('SYMBOL', x)
   ids <- mget(id, map, ifnotfound=NA)
   
@@ -330,7 +310,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 
 setMethod("getGeneIdFromEntrezId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
-  x <- .getAnnoPackageName(x)
+  x <- getAnnoPackageName(x)
   
   if (anno.source == 'refGene') {
     warning("RefSeq doesn't have 'gene ids' since their IDs are ",

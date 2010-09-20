@@ -215,3 +215,16 @@ function(object) {
   subset(metadata(object@.txdb), name == "UCSC Table")$value
 })
 
+setMethod("cacheDir", c(x="GenomicCache"),
+function(x, ..., global=FALSE) {
+  if (global) {
+    cdir <- Sys.getenv(.GFX$cache$environment.key)
+  } else {
+    cdir <- file.path(x@.path, 'cache')
+  }
+  more <- list(...)
+  if (length(more) > 0L) {
+    cdir <- do.call(file.path, c(list(cdir), more))
+  }
+  cdir
+})

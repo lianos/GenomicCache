@@ -9,7 +9,7 @@ Maintainer: Steve Lianoglou <slianoglou@gmail.com>
 Depends: GenomicFeatures (>= 1.1.11)
 Imports: methods, DBI (>= 0.2-5), RSQLite (>= 0.8-1), IRanges, GenomicRanges,
          Biostrings (>= 2.17.6), rtracklayer (>= 1.7.11), biomaRt, RCurl,
-         annotate, utils
+         AnnotationDbi, annotate, utils
 Suggests: testthat (>= 0.3),
           org.Hs.eg.db,
           BSgenome,

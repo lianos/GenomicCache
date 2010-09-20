@@ -4,6 +4,25 @@ checkVerbose <- function(...) {
   verbose
 }
 
+##' Returns the bioconductor annoation package name for the given genome.
+##' 
+##' @param from A character string naming the genome, ie. hg18, mm9, etc.
+##' The function also checks to see if it is the name of the package itself.
+##' @param package Passed through to the \code{\link{annotationPackage}}
+##' function. 
+getAnnoPackageName <- function(from, package=NULL) {
+  is.anno.package <- length(grep('^org\\..*\\.db$', from) == 1L)
+  if (is.anno.package) {
+    ## this is probably the package name itself
+    if (!require(from, character.only=TRUE)) {
+      stop("Unknown package: ", from)
+    }
+    from
+  } else {
+    ## probably the genome
+    annotationPackage(from, package=package)
+  }
+}
 
 ##' Takes a character vector and tacks on a .1, .2, etc. to any duplicate
 ##' names until they are all made unique

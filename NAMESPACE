@@ -2,9 +2,11 @@ import(IRanges)
 import(GenomicRanges)
 import(GenomicFeatures)
 
+importFrom(AnnotationDbi, mget)
+
 importFrom(annotate,
   getAnnMap,
-  dataSource,
+  dataSource
 )
 
 exportClasses(
@@ -18,7 +20,6 @@ exportClasses(
 exportMethods(
   duplicate,
   annotationPackage,
-  getEgAnnotationMap,
   annotationSource,
   genome,
   clearCache,
@@ -35,7 +36,7 @@ exportMethods(
   id,
   symbol,
   chromosome,
-  
+  entrezId,
   idealized,
   
   getEntrezIdFromSymbol,
@@ -56,9 +57,7 @@ exportMethods(
 export(
   GFGene,
   GenomicCache,
-  
   generateGFXGeneModels,
-  
-  id2symbol
- 
+  id2symbol,
+  getAnnoPackageName
 )

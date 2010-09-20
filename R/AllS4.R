@@ -31,10 +31,6 @@ setClass("AceviewGene", contains="GFGene")
 
 setGeneric("duplicate", function(x, ...) standardGeneric("duplicate"))
 
-setGeneric("getEgAnnotationMap", function(x, what, ...) {
-  standardGeneric("getEgAnnotationMap")
-})
-
 setGeneric("annotationSource", function(object) {
   standardGeneric("annotationSource")
 })
@@ -70,6 +66,7 @@ setGeneric("genome", function(x, ...) standardGeneric("genome"))
 setGeneric("cacheFetch", function(x, what, expr) standardGeneric("cacheFetch"))
 setGeneric("clearCache", function(x, ...) standardGeneric("clearCache"))
 setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
+setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 
 ################################################################################
 ## Methods: Gene
@@ -94,8 +91,8 @@ setGeneric("chromosomes", function(x, ...) {
   standardGeneric("chromosomes")
 })
 
-setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 
 ################################################################################
 ## Methods: GenomicCache
+setGeneric("cacheDir", function(x, ...) standardGeneric("cacheDir"))
 
