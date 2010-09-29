@@ -242,7 +242,7 @@ function(x, type=c('tx', 'transcript', 'cds', 'coding'),
 
 setMethod("getBsGenome", c(x="GFGene"),
 function(x, ...) {
-  getBsGenomeFromVersion(genome(x))
+  getBsGenome(genome(x))
 })
 
 ############################################################## Simple Accessors
