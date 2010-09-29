@@ -155,7 +155,7 @@ GFGene <- function(..., .gc=NULL) {
       .id=gene.id,
       .symbol=symbol,
       .strand=as.factor(strand(xcripts)[1]),
-      .chromosome=as.factor(seqnames(xcripts)[1]),
+      .chromosome=as.factor(unique(seqnames(xcripts))),
       .exons=g.exons,
       .cds=g.cds,
       .utr5=g.utr5,
@@ -171,13 +171,17 @@ function(object) {
                     "unknown source")
   xcripts <- transcripts(object)
   meta <- values(xcripts)
-  cat(sprintf("%s[%s], %s(%s) %d transcripts\n",
-              symbol(object), asource, chromosome(object), strand(object),
+  
+  cat(sprintf("%s[%s], %s %d transcripts\n",
+              symbol(object), asource,
+              paste(chromosome(object), collapse=","),
               length(xcripts)))
   for (idx in 1:length(xcripts)) {
-    bounds <- range(ranges(xcripts[[idx]]))
+    xcript <- xcripts[[idx]]
+    bounds <- range(ranges(xcript))
     cat(" ", meta$tx_name[idx], ": ")
-    cat(chromosome(object), ":", sep="")
+    cat(as.character(seqnames(xcript)[1]))
+    cat(" (", as.character(strand(xcript)[1]), ") : ", sep="")
     cat(format(start(bounds), big.mark=","), "-", sep="")
     cat(format(end(bounds), big.mark=","), "\n")
   }
@@ -273,13 +277,14 @@ function(x, ...) {
 
 setMethod("chromosome", c(x="GFGene"), 
 function(x, as.DNAString=FALSE, unmasked=TRUE, ...) {
-  chr <- as.character(x@.chromosome)[1]
+  chr <- as.character(x@.chromosome)
   if (as.DNAString) {
-    genome <- getBsGenome(x)
-    chr <- genome[[chr]]
-    if (unmasked) {
-      chr <- unmasked(chr)
-    }
+    stop("Manually retreive the chromosome from a BSgenome object")
+    ## genome <- getBsGenome(x)
+    ## chr <- genome[[chr]]
+    ## if (unmasked) {
+    ##   chr <- unmasked(chr)
+    ## }
   }
   chr
 })

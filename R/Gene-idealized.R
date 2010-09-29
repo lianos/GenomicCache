@@ -44,136 +44,145 @@ matchGFGeneCollapse <- function(x, collapse) {
 setGeneric("idealized", 
 function(x, by=c('all', 'cds', 'utr5', 'utr3'),
          collapse=c('cover', 'constitutive', 'first'),
-         cds.cover=c('min', 'max'), utr5.extend=0L, utr3.extend=0L, ...) {
+         cds.cover=c('min', 'max'), flank.up=0L, flank.down=0L, ...) {
   standardGeneric("idealized")
 })
 
 setMethod("idealized", c(x="GFGene"),
-function(x, by, collapse, cds.cover, utr5.extend, utr3.extend, ...) {
+function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
   by <- match.arg(by)
   cds.cover <- match.arg(cds.cover)
   collapse <- matchGFGeneCollapse(x, collapse)
   reducef <- switch(collapse, cover='union', 'intersect')
   g.strand <- strand(x)
   
-  .idealizedBy <- switch(by, all=.idealizedByAll, cds=.idealizedByCds,
-                         utr5=.idealizedByUtr5, utr3=.idealizedByUtr3)
+  var.name <- paste('idealized', collapse,
+                    sprintf('by-%s', by),
+                    sprintf('cdscover-%s', cds.cover),
+                    sprintf('utr5*-%d', flank.up),
+                    sprintf('utr3*-%d', flank.down),
+                    sep=".")
+  
+  cacheFetch(x, var.name, {
+    .idealizedBy <- switch(by, all=.idealizedByAll, cds=.idealizedByCds,
+                           utr5=.idealizedByUtr5, utr3=.idealizedByUtr3)
 
-  probably.rna <- (all(!isProteinCoding(x)) ||
-                   (any(!isProteinCoding(x)) && cds.cover == 'min'))
-  if (probably.rna) {
-    ## A gene with non-protein coding transcripts is tagged as `utr` across
-    ## across all of its exons in this scenario
-    ranges <- Reduce(reducef, lapply(transcripts(x), ranges))
-    exon.anno <- c(rep('utr', length(ranges)))
-  } else {
-    if (is.integer(collapse)) {
-      ## Perhaps the Nth transcript doesn't have all of the expected segments
-      ## in which case, we want to return an empty IRanges
-      takeOrEmpty <- function(x, idx) {
-        if (length(x) < idx) IRanges() else x[[idx]]
-      }
-      .exons <- list(utr5=takeOrEmpty(utr5(x), collapse),
-                     cds=takeOrEmpty(cds(x), collapse),
-                     utr3=takeOrEmpty(utr3(x), collapse))
+    probably.rna <- (all(!isProteinCoding(x)) ||
+                     (any(!isProteinCoding(x)) && cds.cover == 'min'))
+    if (probably.rna) {
+      ## A gene with non-protein coding transcripts is tagged as `utr` across
+      ## across all of its exons in this scenario
+      ranges <- Reduce(reducef, lapply(transcripts(x), ranges))
+      exon.anno <- c(rep('utr', length(ranges)))
     } else {
-      ## `Reduce`-ing over an empty list (which can result from a gene not
-      ## having a .utr3) will produce a NULL in insteand of an empty IRanges
-      ## object, which will throw errors in the setdiff operations below
-      null2empty <- function(x) if (is.null(x)) IRanges() else x
-      .cds <- null2empty(Reduce(reducef, lapply(cds(x), ranges)))
-      .utr3 <- null2empty(Reduce(reducef, lapply(utr3(x), ranges)))
-      .utr5 <- null2empty(Reduce(reducef, lapply(utr5(x), ranges)))
-
-      if (cds.cover == 'min') {
-        .cds <- setdiff(.cds, union(.utr3, .utr5))
+      if (is.integer(collapse)) {
+        ## Perhaps the Nth transcript doesn't have all of the expected segments
+        ## in which case, we want to return an empty IRanges
+        takeOrEmpty <- function(x, idx) {
+          if (length(x) < idx) IRanges() else x[[idx]]
+        }
+        .exons <- list(utr5=takeOrEmpty(utr5(x), collapse),
+                       cds=takeOrEmpty(cds(x), collapse),
+                       utr3=takeOrEmpty(utr3(x), collapse))
       } else {
-        .utr3 <- setdiff(.utr3, .cds)
-        .utr5 <- setdiff(.utr5, .cds)
-      }
+        ## `Reduce`-ing over an empty list (which can result from a gene not
+        ## having a .utr3) will produce a NULL in insteand of an empty IRanges
+        ## object, which will throw errors in the setdiff operations below
+        null2empty <- function(x) if (is.null(x)) IRanges() else x
+        .cds <- null2empty(Reduce(reducef, lapply(cds(x), ranges)))
+        .utr3 <- null2empty(Reduce(reducef, lapply(utr3(x), ranges)))
+        .utr5 <- null2empty(Reduce(reducef, lapply(utr5(x), ranges)))
 
-      .exons <- .idealizedBy(.utr5, .cds, .utr3, cds.cover)
-    }
-    ranges <- c(.exons$utr5, .exons$cds, .exons$utr3)
-    exon.anno <- c(rep('utr5', length(.exons$utr5)),
-                   rep('cds', length(.exons$cds)),
-                   rep('utr3', length(.exons$utr3)))
-  }
-
-  if (probably.rna && by == 'cds') {
-    gr <- GRanges()
-    values(gr) <- DataFrame(exon.anno=character())
-  } else if (probably.rna || by == 'all') {
-    gr <- GRanges(seqnames=rep(chromosome(x), length(ranges)),
-                  ranges=ranges,
-                  strand=rep(g.strand, length(ranges)))
-    values(gr) <- DataFrame(exon.anno=exon.anno)
-    gr <- gr[order(start(gr))]
-  } else {
-    gr <- lapply(.exons, function(e) {
-      g <- GRanges(seqnames=rep(chromosome(x), length(e)),
-                   ranges=e,
-                   strand=rep(g.strand, length(e)))
-      values(g) <- DataFrame(exon.anno=rep(by, length(g)))
-      if (length(g) > 0) {
-        g[order(start(g))]
-      }
-      g
-    })
-    gr <- GRangesList(gr)
-  }
-
-  if (utr5.extend > 0) {
-    if (probably.rna) {
-      
-    } else {
-      take <- which(values(gr)$exon.anno == 'utr5')
-      if (length(take) > 0) {
-        if (g.strand == '+') {
-          ext.end <- start(gr[take[1L]]) - 1L
-          ext.start <- ext.end - utr5.extend + 1
-          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
-                             ranges=IRanges(start=ext.start, end=ext.end))
-          values(utr.ext) <- DataFrame(exon.anno='utr5*')
-          gr <- c(utr.ext, gr)
+        if (cds.cover == 'min') {
+          .cds <- setdiff(.cds, union(.utr3, .utr5))
         } else {
-          ext.start <- end(gr[take[length(take)]]) + 1L
-          ext.end <- ext.start + utr5.extend - 1L
-          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
-                             ranges=IRanges(start=ext.start, end=ext.end))
-          values(utr.ext) <- DataFrame(exon.anno='utr5*')
-          gr <- c(gr, utr.ext)
+          .utr3 <- setdiff(.utr3, .cds)
+          .utr5 <- setdiff(.utr5, .cds)
+        }
+
+        .exons <- .idealizedBy(.utr5, .cds, .utr3, cds.cover)
+      }
+      ranges <- c(.exons$utr5, .exons$cds, .exons$utr3)
+      exon.anno <- c(rep('utr5', length(.exons$utr5)),
+                     rep('cds', length(.exons$cds)),
+                     rep('utr3', length(.exons$utr3)))
+    }
+
+    if (probably.rna && by == 'cds') {
+      gr <- GRanges()
+      values(gr) <- DataFrame(exon.anno=character())
+    } else if (probably.rna || by == 'all') {
+      gr <- GRanges(seqnames=rep(chromosome(x), length(ranges)),
+                    ranges=ranges,
+                    strand=rep(g.strand, length(ranges)))
+      values(gr) <- DataFrame(exon.anno=exon.anno)
+      gr <- gr[order(start(gr))]
+    } else {
+      gr <- lapply(.exons, function(e) {
+        g <- GRanges(seqnames=rep(chromosome(x), length(e)),
+                     ranges=e,
+                     strand=rep(g.strand, length(e)))
+        values(g) <- DataFrame(exon.anno=rep(by, length(g)))
+        if (length(g) > 0) {
+          g[order(start(g))]
+        }
+        g
+      })
+      gr <- GRangesList(gr)
+    }
+
+    if (flank.up > 0) {
+      if (probably.rna) {
+        
+      } else {
+        take <- which(values(gr)$exon.anno == 'utr5')
+        if (length(take) > 0) {
+          if (g.strand == '+') {
+            ext.end <- start(gr[take[1L]]) - 1L
+            ext.start <- ext.end - flank.up + 1
+            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                               ranges=IRanges(start=ext.start, end=ext.end))
+            values(utr.ext) <- DataFrame(exon.anno='utr5*')
+            gr <- c(utr.ext, gr)
+          } else {
+            ext.start <- end(gr[take[length(take)]]) + 1L
+            ext.end <- ext.start + flank.up - 1L
+            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                               ranges=IRanges(start=ext.start, end=ext.end))
+            values(utr.ext) <- DataFrame(exon.anno='utr5*')
+            gr <- c(gr, utr.ext)
+          }
         }
       }
     }
-  }
-  
-  if (utr3.extend > 0) {
-    if (probably.rna) {
-      
-    } else {
-      take <- which(values(gr)$exon.anno == 'utr3')
-      if (length(take) > 0) {
-        if (g.strand == '+') {
-          ext.start <- end(gr[take[length(take)]]) + 1L
-          ext.end <- ext.start + utr3.extend - 1L
-          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
-                             ranges=IRanges(start=ext.start, end=ext.end))
-          values(utr.ext) <- DataFrame(exon.anno='utr3*')
-          gr <- c(gr, utr.ext)
-        } else {
-          ext.end <- start(gr[take[1L]]) - 1L
-          ext.start <- ext.end - utr3.extend + 1
-          utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
-                             ranges=IRanges(start=ext.start, end=ext.end))
-          values(utr.ext) <- DataFrame(exon.anno='utr3*')
-          gr <- c(utr.ext, gr)
+    
+    if (flank.down > 0) {
+      if (probably.rna) {
+        
+      } else {
+        take <- which(values(gr)$exon.anno == 'utr3')
+        if (length(take) > 0) {
+          if (g.strand == '+') {
+            ext.start <- end(gr[take[length(take)]]) + 1L
+            ext.end <- ext.start + flank.down - 1L
+            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                               ranges=IRanges(start=ext.start, end=ext.end))
+            values(utr.ext) <- DataFrame(exon.anno='utr3*')
+            gr <- c(gr, utr.ext)
+          } else {
+            ext.end <- start(gr[take[1L]]) - 1L
+            ext.start <- ext.end - flank.down + 1
+            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+                               ranges=IRanges(start=ext.start, end=ext.end))
+            values(utr.ext) <- DataFrame(exon.anno='utr3*')
+            gr <- c(utr.ext, gr)
+          }
         }
       }
     }
-  }
-  
-  gr
+    
+    gr
+  })
 })
 
 
@@ -219,4 +228,5 @@ function(x, by, collapse, cds.cover, utr5.extend, utr3.extend, ...) {
 .idealizedByAll <- function(.utr5, .cds, .utr3, cds.cover) {
   list(utr5=.utr5, cds=.cds, utr3=.utr3)
 }
+
 
