@@ -32,10 +32,10 @@ values(g3r) <- DataFrame(exon.anno=c('cds', 'utr5'))
 gchr1 <- GRangesList(GeneA=g1, GeneB=g2, GeneC=o1, GeneD=g3r)
 lchr1 <- list(GeneA=g1, GeneB=g2, GeneC=o1, GeneD=g3r)
 
-anno.stranded <- annotateChromosome(lchr1, 'chr1', clengths[['chr1']],
-                                    stranded=TRUE)
-anno.nostrand <- annotateChromosome(lchr1, 'chr1', clengths[['chr1']],
-                                    stranded=FALSE)
+anno.stranded <- annotateChromosome(lchr1, flank.up=2, flank.down=5, 'chr1',
+                                    clengths[['chr1']], stranded=TRUE)
+anno.nostrand <- annotateChromosome(lchr1, flank.up=2, flankd.down=5, 'chr1',
+                                    clengths[['chr1']],stranded=FALSE)
 ################################################################################
 ## Run tests
 context("Annotate Chromosome")
