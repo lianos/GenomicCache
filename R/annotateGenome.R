@@ -1,7 +1,37 @@
 setClass('AnnotatedChromosome', contains="GRanges")
 
+.annotatedChromosomeFileName <- function(gcache, seqname, flank.up, flank.down,
+                                         stranded) {
+  stranded <- if (stranded) 'stranded' else 'not-stranded'
+  fn <- sprintf("%s.annotated.up-%d.down-%d.%s.rda", seqname, flank.up,
+                flank.down, stranded)
+  file.path(cacheDir(gcache), 'annotated.chromosomes', fn)
+}
+
+##' Returns the annotated chromosome object from the given parameters.
+##'
+##' If the file has not been built, an error will be thrown prompting the
+##' caller to genereate this file first.
+getAnnotatedChromosome <- function(gcache, seqname, flank.up=1000L,
+                                   flank.down=1000L, stranded=TRUE) {
+  fn <- .annotatedChromosomeFileName(gcache, seqname, flank.up, flank.down,
+                                     stranded)
+  if (!file.exists(fn)) {
+    v <- sprintf('gcache, flank.up=%d, flank.down=%d, stranded=%s, chrs=%s)',
+                 flank.up, flank.down, stranded, seqname)
+    stop(basename(fn), " file not found. Generate it first via:\n!",
+         sprintf('annotateChromosomeByGenes(%s, ...), v'))
+  }
+
+  var.name <- load(fn)
+  get(var.name, inherits=FALSE)
+}
+
 ##' Calculates a GRanges object for a chromosome, with internal ranges
 ##' corresponding to annotated exon boundaries for genes.
+##'
+##' NOTE: It's not clear how a genomic locus that belongs to an intron of
+##' two genes is assigned the "gene owner". Investigate further!
 ##' 
 ##' @param gene.list list of GRanges objects, each object in the list indicates
 ##' the set of exons (across all isoforms) for a gene -- such as you might get
@@ -14,6 +44,10 @@ setClass('AnnotatedChromosome', contains="GRanges")
 ##' @param seqlength The length of the chromosome
 annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
                                seqname='NA', seqlength=NA, stranded=TRUE) {
+  if (!stranded) {
+    stop("Unstranded annotation not fully functional ... look to fix code ",
+         "from 'buildFlank...' onwards ...")
+  }
   ## Parameter Bureaucracy
   sl <- integer()
   sl[[seqname]] <- seqlength
@@ -26,7 +60,6 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
     names(gl) <- NULL
     exons <- do.call(c, gl)
   }
-
   
   ## I am handling strand issues outside of the GRanges framework
   if (!stranded) {
@@ -120,6 +153,7 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
   intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
   annotated <- c(annotated, intergenic)
   annotated <- annotated[order(start(annotated))]
+  class(annotated) <- 'AnnotatedChromosome'
   annotated
 }
 
@@ -194,9 +228,17 @@ buildFlankAnnotation <- function(annotated, fdist, fdir, fstrand) {
     ## There will be duplicate matches here when there shouldn't be
     ## I think this is due to small (1) width annotations ... ignore
     ## these
-    axe <- unique(mm[,2][duplicated(mm[,2])])
-    axe <- mm[,2] %in% axe
-    mm <- mm[!axe,,drop=FALSE]
+    
+    ## axe <- unique(mm[,2][duplicated(mm[,2])])
+    ## axe <- mm[,2] %in% axe
+    ## mm <- mm[!axe,,drop=FALSE]
+
+    ## There should only be max of 1 assignment per new flank,
+    ## uniqueness over txBound ids doesn't work
+    axe <- unique(mm[, 1][duplicated(mm[, 1])])
+    keep <- !(mm[, 1] %in% axe)
+    mm <- mm[keep, , drop=FALSE]
+    
     new.flanks <- GRanges(seqnames=seqname, ranges=d[mm[,1]], strand=fstrand)
     values(new.flanks) <- values(bounds)[mm[,2],]
     exon.anno <- if (fdir == 'up') 'utr5*' else 'utr3*'
@@ -278,10 +320,11 @@ buildFlankAnnotation <- function(annotated, fdist, fdir, fstrand) {
 ##' \code{GFGene::idealized} function
 ##' @param gene.collapse The \code{collapse} parameter for the
 ##' \code{GFGene::idealized} function
-annotateGenomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.up,
-                                  gene.by='all', gene.collapse='cover',
-                                  gene.cds.cover='min', chrs=NULL,
-                                  do.save=TRUE, path=cacheDir(gcache), ...) {
+annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.up,
+                                      stranded=TRUE, gene.by='all',
+                                      gene.collapse='cover',
+                                      gene.cds.cover='min', chrs=NULL,
+                                      do.save=TRUE, ...) {
   bsg <- getBsGenome(gcache)
   if (is.null(chrs)) {
     chrs <- chromosomes(gcache)
@@ -321,12 +364,13 @@ annotateGenomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.up,
     st <- proc.time()['elapsed']
     chr.anno <- annotateChromosome(models, flank.up, flank.down,
                                    seqname=chr, seqlength=chr.length,
-                                   stranded=TRUE)
+                                   stranded=stranded)
     cat(proc.time()['elapsed'] - st, "secons\n")
 
     if (do.save) {
-      fname <- sprintf("%s.annotated.stranded.rda", chr)
-      save(chr.anno, file=file.path(path, fname))
+      fn <- .annotatedChromosomeFileName(gcache, chr, flank.up, flank.down,
+                                         stranded)
+      save(chr.anno, file=fn)
     }
 
     chr.anno
