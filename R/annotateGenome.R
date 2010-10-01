@@ -19,12 +19,13 @@ getAnnotatedChromosome <- function(gcache, seqname, flank.up=1000L,
   if (!file.exists(fn)) {
     v <- sprintf('gcache, flank.up=%d, flank.down=%d, stranded=%s, chrs=%s)',
                  flank.up, flank.down, stranded, seqname)
-    stop(basename(fn), " file not found. Generate it first via:\n!",
-         sprintf('annotateChromosomeByGenes(%s, ...), v'))
+    stop(basename(fn), " file not found. Generate it first via:\n",
+         sprintf('  annotateChromosomeByGenes(%s, ...)', v))
   }
-
   var.name <- load(fn)
-  get(var.name, inherits=FALSE)
+  anno <- get(var.name, inherits=FALSE)
+  class(anno) <- 'AnnotatedChromosome'
+  anno
 }
 
 ##' Calculates a GRanges object for a chromosome, with internal ranges
