@@ -4,6 +4,23 @@ checkVerbose <- function(...) {
   verbose
 }
 
+## Loads one item from the rda file. if what is null, it will
+## load the first item 
+load.it <- function(rda.file, what=NULL) {
+  e <- new.env()
+  things <- load(rda.file, e)
+  if (length(things) == 0L) {
+    stop("Nothing found in file")
+  }
+  if (is.null(what)) {
+    what <- things[1]
+  }
+  if (!what %in% things) {
+    stop("`", what, "` not found in ", rda.file)
+  }
+  get(what, e, inherits=FALSE)
+}
+
 ##' Returns the bioconductor annoation package name for the given genome.
 ##' 
 ##' @param from A character string naming the genome, ie. hg18, mm9, etc.

@@ -148,8 +148,7 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
   ## Annotate introns
   introns <- buildIntronAnnotation(annotated, stranded=stranded)
   annotated <- c(annotated, introns)
-
-
+  
   ## Whatever isn't marked by now must be intergenic
   intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
   annotated <- c(annotated, intergenic)
@@ -179,7 +178,7 @@ buildIntergenicRegions <- function(annotated, stranded=TRUE) {
 }
 
 buildIntronAnnotation <- function(annotated, stranded=TRUE) {
-  bounds <- .txBounds(annotated)
+  bounds <- annotatedTxBounds(annotated)
   unannotated <- gaps(annotated)
   if (stranded) {
     unannotated <- unannotated[strand(unannotated) != '*']
@@ -218,7 +217,7 @@ buildFlankAnnotation <- function(annotated, fdist, fdir, fstrand) {
   annotated <- annotated[atake]
   seqname <- seqnames(annotated)[1]
   
-  bounds <- .txBounds(annotated)
+  bounds <- annotatedTxBounds(annotated)
   
   .flank <- flank(bounds, width=fdist, start=.fstart.val(fdir, fstrand))
 
@@ -251,7 +250,7 @@ buildFlankAnnotation <- function(annotated, fdist, fdir, fstrand) {
   new.flanks
 }
 
-.txBounds <- function(annotated, flank.up=0L, flank.down=0L) {
+annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
   ## Calculate inferredmax-bounds by symbol
   dt <- data.table(start=start(annotated), end=end(annotated),
                    symbol=values(annotated)$symbol,
