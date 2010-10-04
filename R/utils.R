@@ -1,3 +1,21 @@
+load1 <- function(rda.file, what=NULL) {
+  if (!file.exists(rda.file)) {
+    stop("Can't find data file ", rda.file)
+  }
+  e <- new.env()
+  vars <- load(rda.file, e)
+  if (length(vars) == 0L) {
+    stop("No objects found in ", rda.file)
+  }
+  if (is.null(what)) {
+    what <- vars[1]
+  }
+  if (!what %in% vars) {
+    stop("Object `", what, "` not found in ", rda.file)
+  }
+  get(what, e, inherits=FALSE)
+}
+
 checkVerbose <- function(...) {
   verbose <- list(...)$verbose
   if (is.null(verbose)) verbose <- options()$verbose
