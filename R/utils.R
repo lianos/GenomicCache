@@ -1,4 +1,12 @@
-load1 <- function(rda.file, what=NULL) {
+checkVerbose <- function(...) {
+  verbose <- list(...)$verbose
+  if (is.null(verbose)) verbose <- options()$verbose
+  verbose
+}
+
+## Loads one item from the rda file. if what is null, it will
+## load the first item 
+load.it <- function(rda.file, what=NULL) {
   if (!file.exists(rda.file)) {
     stop("Can't find data file ", rda.file)
   }
@@ -12,29 +20,6 @@ load1 <- function(rda.file, what=NULL) {
   }
   if (!what %in% vars) {
     stop("Object `", what, "` not found in ", rda.file)
-  }
-  get(what, e, inherits=FALSE)
-}
-
-checkVerbose <- function(...) {
-  verbose <- list(...)$verbose
-  if (is.null(verbose)) verbose <- options()$verbose
-  verbose
-}
-
-## Loads one item from the rda file. if what is null, it will
-## load the first item 
-load.it <- function(rda.file, what=NULL) {
-  e <- new.env()
-  things <- load(rda.file, e)
-  if (length(things) == 0L) {
-    stop("Nothing found in file")
-  }
-  if (is.null(what)) {
-    what <- things[1]
-  }
-  if (!what %in% things) {
-    stop("`", what, "` not found in ", rda.file)
   }
   get(what, e, inherits=FALSE)
 }
