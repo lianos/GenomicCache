@@ -99,13 +99,17 @@ takeFromListByType <- function(the.list, type, multi=FALSE, index=FALSE) {
   }
   
   if (length(take) > 1) {
-    if (is.logical(multi[1]) && !multi) {
-      warning("Multiple objects of type ", type, " found.")
-      take <- '..NOTHING..'
-    } else if (is.integer(multi)) {
+    if (is.logical(multi[1])) {
+      if (!multi) {
+        warning("Multiple objects of type ", type, " found.")
+        take <- '..NOTHING..'
+      }
+    } else if (is.numeric(multi)) {
       if (any(multi > length(take)) || any(multi < 0L)) {
         warning("multi take subscript(s) out of bounds")
         take <- '..NOTHING..'
+      } else {
+        take <- take[multi]
       }
     } else {
       warning("Illegal type of multi argument: ", is(multi)[1])
