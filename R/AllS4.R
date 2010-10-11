@@ -18,13 +18,13 @@ setClass("GFGene",
                         .exons="GRangesList",
                         .cds="GRangesList",
                         .utr5="GRangesList",
-                        .utr3="GRangesList",
-                        .transcript.names="character"),
+                        .utr3="GRangesList"),
          contains="GenomicFeaturesX")
 
 setClass("RefSeqGene", contains="GFGene")
 setClass("EnsemblGene", contains="GFGene")
 setClass("AceviewGene", contains="GFGene")
+setClass("UcscGene", contains="GFGene")
 
 ################################################################################
 ## Methods : Generic (work on all GenomicFeaturesX-type objects)

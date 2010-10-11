@@ -31,9 +31,21 @@ function(.Object, ...,
 
 .guessGeneIdType <- function(id, anno.source) {
   if (anno.source == 'refGene') {
+    ## refseq
     id.type <- switch(substring(id, 1, 3), NM_='tx.id', NR_='tx.id', "symbol")
   } else if (anno.source == 'ensGene') {
+    ## ensemble
     id.type <- switch(substring(id, 1, 4), ENST='tx.id', ENSG='id', 'symbol')
+  } else if (anno.source == 'knownGene') {
+    ## UCSC genes
+    id.type <- switch(substring(id, 1, 2), uc='tx.id', 'symbol')
+  } else if (anno.source == 'acembly') {
+    ## Aceview
+    if (length(grep('.', id, fixed=TRUE)) == 0) {
+      id.type <- 'symbol'
+    } else {
+      id.type <- 'tx.id'
+    }
   } else {
     stop("Don't know how to parse gene names of this type: ", anno.source)
   }
@@ -58,7 +70,8 @@ GFGene <- function(..., .gc=NULL) {
   
   anno.source <- annotationSource(.gc)
   class.name <- switch(anno.source, refGene="RefSeqGene",
-                       ensGene="EnsemblGene", aceGene="AceviewGene",
+                       ensGene="EnsemblGene", acembly="AceviewGene",
+                       knownGene="UcscGene",
                        stop("Unknown source: ", anno.source))
   genome <- genome(.gc)
   
@@ -109,15 +122,26 @@ GFGene <- function(..., .gc=NULL) {
   if (is.null(gene.id)) {
     gene.id <- switch(anno.source, refGene=symbol,
                       ensGene=getGeneIdFromEntrezId(.gc, entrez.id),
-                      aceGene=symbol, stop("Unknown anno.source"))
+                      knownGene=symbol, acembly=symbol,
+                      stop("Unknown anno.source"))
   }
   
   .exons <- exonsBy(.gc, 'tx')
   .transcripts <- transcripts(.gc)
 
   ## Get all transcript IDs associated with this gene
-  tx.name <- getTranscriptIdFromEntrezId(genome, entrez.id, anno.source)
-  xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
+  if (class.name != 'AceviewGene') {
+    tx.name <- getTranscriptIdFromEntrezId(genome, entrez.id, anno.source)
+    xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
+  } else {
+    tx.names <- values(.transcripts)$tx_name
+    take <- grep(sprintf('%s\\.', symbol), tx.names, ignore.case=TRUE)
+    if (length(take) == 0) {
+      stop("Can not find transcripts in Aceview")
+    }
+    xcripts <- .transcripts[take]      
+  }
+  
   xm <- values(xcripts)
   tx.ids <- as.character(xm$tx_id)
   meta <- DataFrame(tx_name=xm$tx_name)
@@ -148,7 +172,8 @@ GFGene <- function(..., .gc=NULL) {
   
   g.utr3 <- take(threeUTRsByTranscript(.gc), tx.ids)
   values(g.utr3) <- meta
-  
+
+  browser()
   new(class.name,
       .entrez.id=entrez.id,
       .id=gene.id,
@@ -167,7 +192,7 @@ setMethod("show", c(object="GFGene"),
 function(object) {
   asource <- switch(substring(annotationSource(object), 1, 3),
                     ens="Ensembl", ref="RefSeq", ace="AceView",
-                    "unknown source")
+                    kno="UCSC", "unknown source")
   xcripts <- transcripts(object)
   meta <- values(xcripts)
   
@@ -196,9 +221,14 @@ setMethod("txBounds", c(x="GFGene"),
 function(x, ...) {
   bounds <- unlist(endoapply(transcripts(x, ...), function(xx) range(xx)),
                    use.names=FALSE)
-  values(bounds) <- DataFrame(tx_name=x@.transcript.names,
+  values(bounds) <- DataFrame(tx_name=txNames(x, ...),
                               tx_id=names(transcripts(x, ...)))
   bounds
+})
+
+setMethod("txNames", c(x="GFGene"),
+function(x, ...) {
+  values(transcripts(x, ...))$tx_name
 })
 
 ##' Returns a GRanges object
@@ -206,7 +236,7 @@ setMethod("cdsBounds", c(x="GFGene"),
 function(x, ...) {
   bounds <- unlist(endoapply(cds(x, ...), function(xx) range(xx)),
                    use.names=FALSE)
-  values(bounds) <- DataFrame(tx_name=x@.transcript.names,
+  values(bounds) <- DataFrame(tx_name=txNames(x, ...),
                               tx_id=names(transcripts(x, ...)))
   bounds
 })
@@ -308,17 +338,13 @@ function(object) {
   switch(class(object)[1],
     RefSeqGene='refGene',
     EnsemblGene='ensGene',
-    AceviewGene='aceGene')
+    AceviewGene='acembly',
+    UcscGene='knownGene')
 })
 
 setMethod("transcripts", c(x="GFGene"),
 function(x, which.chr=NULL, ...) {
   filterByChr(x@.exons, which.chr=which.chr)
-})
-
-setMethod("txNames", c(x="GFGene"),
-function(x, ...) {
-  values(transcripts(x, ...))$tx_name
 })
 
 setMethod("exons", c(x="GFGene"),

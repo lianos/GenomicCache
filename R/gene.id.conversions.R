@@ -90,6 +90,12 @@ function(x, id, anno.source, rm.unknown) {
     map <- revmap(getAnnMap('ENSEMBLTRANS', x))
   } else if (anno.source == 'refGene') {
     map <- getAnnMap('REFSEQ2EG', x)
+  } else if (anno.source == 'knownGene') {
+    map <- revmap(getAnnMap('UCSCKG', x))
+  } else if (anno.source == 'acembly') {
+    warning("No transcript ID map in org.*.db Annotation maps, parsing symbol")
+    symbol <- strsplit(id, '.', fixed=TRUE)[[1]][1]
+    return(getEntrezIdFromSymbol(x, symbol, anno.source, rm.unknown))
   } else {
     stop("Unknown annotation source (UCSC Table): ", anno.source)
   }
@@ -144,8 +150,8 @@ setMethod("getEntrezIdFromGeneId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
   
-  if (anno.source == 'refGene') {
-    message("Assuming gene id is its symbol for RefSeq")
+  if (anno.source %in% c('refGene', 'knownGene', 'acembly')) {
+    message("Assuming gene id is its symbol")
     ids <- getEntrezIdFromSymbol(x, id, anno.source, rm.unknown)
   } else if (anno.source == 'ensGene') {
     map <- getAnnMap('ENSEMBL2EG', x)
@@ -204,6 +210,10 @@ function(x, id, anno.source, rm.unknown) {
     map <- getAnnMap('ENSEMBLTRANS', x)
   } else if (anno.source == 'refGene') {
     map <- revmap(getAnnMap('REFSEQ2EG', x))
+  } else if (anno.source == 'knownGene') {
+    map <- getAnnMap('UCSCKG', x)
+  } else (anno.source == 'acembly') {
+    stop("No transcript map for Aceview genes in org.*.db pacakges")
   } else {
     stop("Unknown annotation source (UCSC Table): ", anno.source)
   }
@@ -312,7 +322,7 @@ setMethod("getGeneIdFromEntrezId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
   
-  if (anno.source == 'refGene') {
+  if (anno.source %in% c('refGene', 'knownGene', 'acembly')) {
     warning("RefSeq doesn't have 'gene ids' since their IDs are ",
             "returning the gene symbol")
    ids <- getSymbolFromEntrezId(x, id, anno.source, rm.unknown)
