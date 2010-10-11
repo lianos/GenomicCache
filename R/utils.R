@@ -1,3 +1,13 @@
+filterByChr <- function(grl, which.chr=NULL) {
+  if (!is.null(which.chr)) {
+    keep <- sapply(grl, function(g) {
+      all(seqnames(g) == which.chr)
+    })
+    grl <- grl[keep]
+  }
+  grl
+}
+
 checkVerbose <- function(...) {
   verbose <- list(...)$verbose
   if (is.null(verbose)) verbose <- options()$verbose

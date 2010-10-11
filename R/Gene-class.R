@@ -137,7 +137,6 @@ GFGene <- function(..., .gc=NULL) {
     x
   }
   
-  
   g.exons <- .exons[tx.ids]
   values(g.exons) <- meta
   
@@ -195,46 +194,46 @@ function(x) {
 
 setMethod("txBounds", c(x="GFGene"),
 function(x, ...) {
-  bounds <- unlist(endoapply(transcripts(x), function(xx) range(xx)),
+  bounds <- unlist(endoapply(transcripts(x, ...), function(xx) range(xx)),
                    use.names=FALSE)
   values(bounds) <- DataFrame(tx_name=x@.transcript.names,
-                              tx_id=names(transcripts(x)))
+                              tx_id=names(transcripts(x, ...)))
   bounds
 })
 
 ##' Returns a GRanges object
 setMethod("cdsBounds", c(x="GFGene"),
 function(x, ...) {
-  bounds <- unlist(endoapply(cds(x), function(xx) range(xx)),
+  bounds <- unlist(endoapply(cds(x, ...), function(xx) range(xx)),
                    use.names=FALSE)
   values(bounds) <- DataFrame(tx_name=x@.transcript.names,
-                              tx_id=names(transcripts(x)))
+                              tx_id=names(transcripts(x, ...)))
   bounds
 })
 
 #' Returns RangesList
 setMethod("cds", c(x="GFGene"),
-function(x, ...) {
-  x@.cds
+function(x, which.chr=NULL, ...) {
+  filterByChr(x@.cds, which.chr=which.chr)
 })
 
 setMethod("utr5", c(x="GFGene"),
-function(x, ...) {
-  x@.utr5
+function(x, which.chr=NULL, ...) {
+  filterByChr(x@.utr5, which.chr=which.chr)
 })
 
 setMethod("utr3", c(x="GFGene"),
-function(x, ...) {
-  x@.utr3
+function(x, which.chr=NULL, ...) {
+  filterByChr(x@.utr3, which.chr=which.chr)
 })
 
 setMethod("range", c(x="GFGene"),
 function(x, by=c('gene', 'tx', 'cds'), ..., na.rm=TRUE) {
   by <- match.arg(by)
   switch(by,
-         gene=range(unlist(transcripts(x))),
-         tx=endoapply(transcripts(x), range),
-         cds=endoapply(cds(x), range))
+         gene=range(unlist(transcripts(x, ...))),
+         tx=endoapply(transcripts(x, ...), range),
+         cds=endoapply(cds(x, ...), range))
 })
 
 setMethod("ranges", c(x="GFGene"),
@@ -262,7 +261,7 @@ function(x, ...) {
 
 setMethod("isProteinCoding", c(x="GFGene"),
 function(x, ...) {
-  sapply(cds(x), function(exons) length(exons) > 0)
+  sapply(cds(x, ...), function(exons) length(exons) > 0)
 })
 
 setMethod("genome", c(x="GFGene"),
@@ -313,16 +312,16 @@ function(object) {
 })
 
 setMethod("transcripts", c(x="GFGene"),
-function(x, ...) {
-  x@.exons
+function(x, which.chr=NULL, ...) {
+  filterByChr(x@.exons, which.chr=which.chr)
 })
 
 setMethod("txNames", c(x="GFGene"),
 function(x, ...) {
-  values(x@.exons)$tx_name
+  values(transcripts(x, ...))$tx_name
 })
 
 setMethod("exons", c(x="GFGene"),
-function(x) {
-  x@.exons
+function(x, ...) {
+  transcripts(x, ...)
 })

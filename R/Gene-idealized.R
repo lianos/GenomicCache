@@ -44,12 +44,13 @@ matchGFGeneCollapse <- function(x, collapse) {
 setGeneric("idealized", 
 function(x, by=c('all', 'cds', 'utr5', 'utr3'),
          collapse=c('cover', 'constitutive', 'first'),
-         cds.cover=c('min', 'max'), flank.up=0L, flank.down=0L, ...) {
+         cds.cover=c('min', 'max'), which.chr=NULL, flank.up=0L, flank.down=0L,
+         ...) {
   standardGeneric("idealized")
 })
 
 setMethod("idealized", c(x="GFGene"),
-function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
+function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
   by <- match.arg(by)
   cds.cover <- match.arg(cds.cover)
   collapse <- matchGFGeneCollapse(x, collapse)
@@ -72,7 +73,8 @@ function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
     if (probably.rna) {
       ## A gene with non-protein coding transcripts is tagged as `utr` across
       ## across all of its exons in this scenario
-      ranges <- Reduce(reducef, lapply(transcripts(x), ranges))
+      ranges <- Reduce(reducef,
+                       lapply(transcripts(x, which.chr=which.chr), ranges))
       exon.anno <- c(rep('utr', length(ranges)))
     } else {
       if (is.integer(collapse)) {
@@ -81,17 +83,20 @@ function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
         takeOrEmpty <- function(x, idx) {
           if (length(x) < idx) IRanges() else x[[idx]]
         }
-        .exons <- list(utr5=takeOrEmpty(utr5(x), collapse),
-                       cds=takeOrEmpty(cds(x), collapse),
-                       utr3=takeOrEmpty(utr3(x), collapse))
+        .exons <- list(utr5=takeOrEmpty(utr5(x, which.chr=which.chr), collapse),
+                       cds=takeOrEmpty(cds(x, which.chr=which.chr), collapse),
+                       utr3=takeOrEmpty(utr3(x, which.chr=which.chr), collapse))
       } else {
         ## `Reduce`-ing over an empty list (which can result from a gene not
         ## having a .utr3) will produce a NULL in insteand of an empty IRanges
         ## object, which will throw errors in the setdiff operations below
         null2empty <- function(x) if (is.null(x)) IRanges() else x
-        .cds <- null2empty(Reduce(reducef, lapply(cds(x), ranges)))
-        .utr3 <- null2empty(Reduce(reducef, lapply(utr3(x), ranges)))
-        .utr5 <- null2empty(Reduce(reducef, lapply(utr5(x), ranges)))
+        .cds <- null2empty(Reduce(reducef,
+                                  lapply(cds(x, which.chr=which.chr), ranges)))
+        .utr3 <- null2empty(Reduce(reducef,
+                                   lapply(utr3(x, which.chr=which.chr), ranges)))
+        .utr5 <- null2empty(Reduce(reducef,
+                                   lapply(utr5(x, which.chr=which.chr), ranges)))
 
         if (cds.cover == 'min') {
           .cds <- setdiff(.cds, union(.utr3, .utr5))
@@ -108,18 +113,20 @@ function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
                      rep('utr3', length(.exons$utr3)))
     }
 
+    chr <- if (!is.null(which.chr)) which.chr else chromosome(x)[1]
+    
     if (probably.rna && by == 'cds') {
       gr <- GRanges()
       values(gr) <- DataFrame(exon.anno=character())
     } else if (probably.rna || by == 'all') {
-      gr <- GRanges(seqnames=rep(chromosome(x), length(ranges)),
+      gr <- GRanges(seqnames=rep(chr, length(ranges)),
                     ranges=ranges,
                     strand=rep(g.strand, length(ranges)))
       values(gr) <- DataFrame(exon.anno=exon.anno)
       gr <- gr[order(start(gr))]
     } else {
       gr <- lapply(.exons, function(e) {
-        g <- GRanges(seqnames=rep(chromosome(x), length(e)),
+        g <- GRanges(seqnames=rep(chr, length(e)),
                      ranges=e,
                      strand=rep(g.strand, length(e)))
         values(g) <- DataFrame(exon.anno=rep(by, length(g)))
@@ -140,14 +147,14 @@ function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
           if (g.strand == '+') {
             ext.end <- start(gr[take[1L]]) - 1L
             ext.start <- ext.end - flank.up + 1
-            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+            utr.ext <- GRanges(seqnames=chr, strand=g.strand,
                                ranges=IRanges(start=ext.start, end=ext.end))
             values(utr.ext) <- DataFrame(exon.anno='utr5*')
             gr <- c(utr.ext, gr)
           } else {
             ext.start <- end(gr[take[length(take)]]) + 1L
             ext.end <- ext.start + flank.up - 1L
-            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+            utr.ext <- GRanges(seqnames=chr, strand=g.strand,
                                ranges=IRanges(start=ext.start, end=ext.end))
             values(utr.ext) <- DataFrame(exon.anno='utr5*')
             gr <- c(gr, utr.ext)
@@ -165,14 +172,14 @@ function(x, by, collapse, cds.cover, flank.up, flank.down, ...) {
           if (g.strand == '+') {
             ext.start <- end(gr[take[length(take)]]) + 1L
             ext.end <- ext.start + flank.down - 1L
-            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+            utr.ext <- GRanges(seqnames=chr, strand=g.strand,
                                ranges=IRanges(start=ext.start, end=ext.end))
             values(utr.ext) <- DataFrame(exon.anno='utr3*')
             gr <- c(gr, utr.ext)
           } else {
             ext.end <- start(gr[take[1L]]) - 1L
             ext.start <- ext.end - flank.down + 1
-            utr.ext <- GRanges(seqnames=chromosome(x), strand=g.strand,
+            utr.ext <- GRanges(seqnames=chr, strand=g.strand,
                                ranges=IRanges(start=ext.start, end=ext.end))
             values(utr.ext) <- DataFrame(exon.anno='utr3*')
             gr <- c(utr.ext, gr)

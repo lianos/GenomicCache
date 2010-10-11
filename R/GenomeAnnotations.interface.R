@@ -18,7 +18,9 @@ loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
 
 ## ~ 6 Hours for RefSeq hg18
 ## ~ 8.3 hours for Ensembl hg18
-generateGFXGeneModels <- function(gcache, chromosomes=NULL) {
+generateGFXGeneModels <- function(gcache, chromosomes=NULL,
+                                  flank.up=c(0, 500, 1000),
+                                  flank.down=c(0, 500, 1000)) {
   if (!require(plyr)) stop("Plyr is used here")
   cache.dir <- cacheDir(gcache, 'gene.models')
   
@@ -33,15 +35,23 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL) {
     chr.xcripts <- xcripts[which(seqnames(xcripts) == chr)]
     .so.far <- character(length(chr.xcripts))
     .idx <- 1L
+    ## check <- c("ENST00000378756", "ENST00000378759", "ENST00000378755",
+    ##            "ENST00000339113")
     genes <- llply(values(chr.xcripts)$tx_name, function(tx) {
       if (tx %in% .so.far) {
         return(NULL)
       }
       g <- tryCatch(GFGene(tx.id=tx, gcache), error=function(e) NULL)
       if (!is.null(g)) {
-        to <- .idx + length(transcripts(g)) - 1
-        .so.far[.idx:to] <<- g@.transcript.names
+        cat(symbol(g), "\n")
+        xcripts <- transcripts(g, which.chr=chr)
+        to <- .idx + length(xcripts) - 1
+        .so.far[.idx:to] <<- values(xcripts)$tx_name
         .idx <<- to + 1
+        ## Generate idealized models
+        for (i in 1:length(flank.up)) {
+          idealized(g, which.chr=chr, flank.up=flank.up[i], flank.down=flank.down[i])
+        }
       }
       g
     }, .progress='text')
