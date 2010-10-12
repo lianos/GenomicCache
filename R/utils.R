@@ -1,7 +1,7 @@
 filterByChr <- function(grl, which.chr=NULL) {
   if (!is.null(which.chr)) {
     keep <- sapply(grl, function(g) {
-      all(seqnames(g) == which.chr)
+      length(g) > 0 && all(seqnames(g) == which.chr)
     })
     grl <- grl[keep]
   }

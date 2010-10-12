@@ -55,7 +55,12 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
   cds.cover <- match.arg(cds.cover)
   collapse <- matchGFGeneCollapse(x, collapse)
   reducef <- switch(collapse, cover='union', 'intersect')
-  g.strand <- strand(x)
+  
+  ## g.strand <- strand(x)
+  g.strand <- as.vector(strand(transcripts(x, which.chr=which.chr)[[1]][1]))
+  
+  args <- list(...)
+  force.eval <- args$force.eval
   
   var.name <- paste('idealized', collapse,
                     sprintf('by-%s', by),
@@ -63,13 +68,20 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
                     sprintf('utr5*-%d', flank.up),
                     sprintf('utr3*-%d', flank.down),
                     sep=".")
+  if (!is.null(which.chr)) {
+    var.name <- paste(var.name, which.chr, sep=".")
+  }
   
   cacheFetch(x, var.name, {
     .idealizedBy <- switch(by, all=.idealizedByAll, cds=.idealizedByCds,
                            utr5=.idealizedByUtr5, utr3=.idealizedByUtr3)
+    is.pc <- isProteinCoding(x, which.chr=which.chr)
+    is.pc <- names(is.pc)[is.pc]
+    probably.rna <- length(is.pc) == 0
+    
+    ## probably.rna <- (all(!isProteinCoding(x)) ||
+    ##                  (any(!isProteinCoding(x)) && cds.cover == 'min'))
 
-    probably.rna <- (all(!isProteinCoding(x)) ||
-                     (any(!isProteinCoding(x)) && cds.cover == 'min'))
     if (probably.rna) {
       ## A gene with non-protein coding transcripts is tagged as `utr` across
       ## across all of its exons in this scenario
@@ -77,27 +89,32 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
                        lapply(transcripts(x, which.chr=which.chr), ranges))
       exon.anno <- c(rep('utr', length(ranges)))
     } else {
+      take.chr <- function(.list, namez) {
+        .list[names(.list) %in% namez]
+      }
+      
+      .cds <- lapply(take.chr(cds(x, which.chr=which.chr), is.pc), ranges)
+      .utr3 <- lapply(take.chr(utr3(x, which.chr=which.chr), is.pc), ranges)
+      .utr5 <- lapply(take.chr(utr5(x, which.chr=which.chr), is.pc), ranges)
+      
       if (is.integer(collapse)) {
         ## Perhaps the Nth transcript doesn't have all of the expected segments
         ## in which case, we want to return an empty IRanges
         takeOrEmpty <- function(x, idx) {
           if (length(x) < idx) IRanges() else x[[idx]]
         }
-        .exons <- list(utr5=takeOrEmpty(utr5(x, which.chr=which.chr), collapse),
-                       cds=takeOrEmpty(cds(x, which.chr=which.chr), collapse),
-                       utr3=takeOrEmpty(utr3(x, which.chr=which.chr), collapse))
+        .exons <- list(utr5=takeOrEmpty(.utr5, collapse),
+                       cds=takeOrEmpty(.cds, collapse),
+                       utr3=takeOrEmpty(.utr3, collapse))
       } else {
         ## `Reduce`-ing over an empty list (which can result from a gene not
         ## having a .utr3) will produce a NULL in insteand of an empty IRanges
         ## object, which will throw errors in the setdiff operations below
         null2empty <- function(x) if (is.null(x)) IRanges() else x
-        .cds <- null2empty(Reduce(reducef,
-                                  lapply(cds(x, which.chr=which.chr), ranges)))
-        .utr3 <- null2empty(Reduce(reducef,
-                                   lapply(utr3(x, which.chr=which.chr), ranges)))
-        .utr5 <- null2empty(Reduce(reducef,
-                                   lapply(utr5(x, which.chr=which.chr), ranges)))
-
+        .cds <- null2empty(Reduce(reducef, .cds))
+        .utr3 <- null2empty(Reduce(reducef, .utr3))
+        .utr5 <- null2empty(Reduce(reducef, .utr5))
+        
         if (cds.cover == 'min') {
           .cds <- setdiff(.cds, union(.utr3, .utr5))
         } else {
@@ -123,7 +140,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
                     ranges=ranges,
                     strand=rep(g.strand, length(ranges)))
       values(gr) <- DataFrame(exon.anno=exon.anno)
-      gr <- gr[order(start(gr))]
+      gr <- gr[order(ranges(gr))]
     } else {
       gr <- lapply(.exons, function(e) {
         g <- GRanges(seqnames=rep(chr, length(e)),
@@ -131,7 +148,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
                      strand=rep(g.strand, length(e)))
         values(g) <- DataFrame(exon.anno=rep(by, length(g)))
         if (length(g) > 0) {
-          g[order(start(g))]
+          g[order(ranges(g))]
         }
         g
       })
@@ -189,7 +206,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
     }
     
     gr
-  })
+  }, force.eval=force.eval)
 })
 
 

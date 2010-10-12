@@ -85,38 +85,38 @@ GFGene <- function(..., .gc=NULL) {
   if (is.null(id.type)) {
     id.type <- .guessGeneIdType(id, anno.source)
   }
-
+  
   ## Necessary monkey business to "do the right thing" in order to get
   ## the correct entrez.id and symbol for this gene
   symbol <- NULL
   gene.id <- NULL
   if (id.type == 'symbol') {
     symbol <- id
-    entrez.id <- getEntrezIdFromSymbol(genome, id, anno.source)
+    entrez.id <- getEntrezIdFromSymbol(.gc, id, anno.source)
   } else {
     if (class.name == 'EnsemblGene') {
       if (id.type == 'id') {
-        entrez.id <- getEntrezIdFromGeneId(genome, id, anno.source)
+        entrez.id <- getEntrezIdFromGeneId(.gc, id, anno.source)
       } else {
-        entrez.id <- getEntrezIdFromTranscriptId(genome, id, anno.source)
+        entrez.id <- getEntrezIdFromTranscriptId(.gc, id, anno.source)
       }
     } else {
-      entrez.id <- getEntrezIdFromTranscriptId(genome, id, anno.source)
+      entrez.id <- getEntrezIdFromTranscriptId(.gc, id, anno.source)
     }
   }
 
   ## DEBUG: Why does more than one entrez id come back -- and even for the
   ##        wrong transcript id? Try ENST00000270722, it returns results for
   ##        ENST000002707221 and ENST000002707222
-  if (!is.null(entrez.id) && !(id %in% names(entrez.id))) {
-    entrez.id <- NULL
-  }
+  ## if (!is.null(entrez.id) && !(id %in% names(entrez.id))) {
+  ##   entrez.id <- NULL
+  ## }
   if (is.null(entrez.id)) {
     stop("Unknown gene identifier: ", id, " (is it a ", id.type, "?)")
   }
   
   if (is.null(symbol)) {
-    symbol <- getSymbolFromEntrezId(genome, entrez.id, anno.source)
+    symbol <- getSymbolFromEntrezId(.gc, entrez.id, anno.source)
   }
   
   if (is.null(gene.id)) {
@@ -131,7 +131,7 @@ GFGene <- function(..., .gc=NULL) {
 
   ## Get all transcript IDs associated with this gene
   if (class.name != 'AceviewGene') {
-    tx.name <- getTranscriptIdFromEntrezId(genome, entrez.id, anno.source)
+    tx.name <- getTranscriptIdFromEntrezId(.gc, entrez.id, anno.source)
     xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
   } else {
     tx.names <- values(.transcripts)$tx_name
@@ -173,7 +173,6 @@ GFGene <- function(..., .gc=NULL) {
   g.utr3 <- take(threeUTRsByTranscript(.gc), tx.ids)
   values(g.utr3) <- meta
 
-  browser()
   new(class.name,
       .entrez.id=entrez.id,
       .id=gene.id,
@@ -290,8 +289,8 @@ function(x, ...) {
 })
 
 setMethod("isProteinCoding", c(x="GFGene"),
-function(x, ...) {
-  sapply(cds(x, ...), function(exons) length(exons) > 0)
+function(x, which.chr=NULL, ...) {
+  sapply(cds(x, which.chr=which.chr, ...), function(exons) length(exons) > 0)
 })
 
 setMethod("genome", c(x="GFGene"),

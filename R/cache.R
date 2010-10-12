@@ -12,8 +12,9 @@
 ##' })
 
 setMethod("cacheFetch", c(x="ANY"),
-function(x, what, expr) {
-  if (!exists(what, x@.cache, inherits=FALSE)) {
+function(x, what, expr, force.eval) {
+  if (!exists(what, x@.cache, inherits=FALSE) ||
+      (is.logical(force.eval) && force.eval)) {
     value <- eval.parent(expr)
     assign(what, value, x@.cache, inherits=FALSE)
   }

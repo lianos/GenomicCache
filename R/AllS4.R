@@ -63,7 +63,9 @@ function(x, package=NULL) {
 
 setGeneric("genome", function(x, ...) standardGeneric("genome"))
 
-setGeneric("cacheFetch", function(x, what, expr) standardGeneric("cacheFetch"))
+setGeneric("cacheFetch", function(x, what, expr, force.eval=FALSE) {
+  standardGeneric("cacheFetch")
+})
 setGeneric("clearCache", function(x, ...) standardGeneric("clearCache"))
 setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
 setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
@@ -95,4 +97,6 @@ setGeneric("chromosomes", function(x, ...) {
 ################################################################################
 ## Methods: GenomicCache
 setGeneric("cacheDir", function(x, ...) standardGeneric("cacheDir"))
+setGeneric("txdb", function(x, ...) standardGeneric("txdb"))
 
+## setGeneric("txdbConn", function(txdb) standardGeneric('txdbConn'))

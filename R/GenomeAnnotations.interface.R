@@ -35,22 +35,21 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL,
     chr.xcripts <- xcripts[which(seqnames(xcripts) == chr)]
     .so.far <- character(length(chr.xcripts))
     .idx <- 1L
-    ## check <- c("ENST00000378756", "ENST00000378759", "ENST00000378755",
-    ##            "ENST00000339113")
     genes <- llply(values(chr.xcripts)$tx_name, function(tx) {
       if (tx %in% .so.far) {
         return(NULL)
       }
       g <- tryCatch(GFGene(tx.id=tx, gcache), error=function(e) NULL)
       if (!is.null(g)) {
-        cat(symbol(g), "\n")
+        cat(chr, symbol(g), "\n")
         xcripts <- transcripts(g, which.chr=chr)
         to <- .idx + length(xcripts) - 1
         .so.far[.idx:to] <<- values(xcripts)$tx_name
         .idx <<- to + 1
         ## Generate idealized models
         for (i in 1:length(flank.up)) {
-          idealized(g, which.chr=chr, flank.up=flank.up[i], flank.down=flank.down[i])
+          idealized(g, which.chr=chr, flank.up=flank.up[i],
+                    flank.down=flank.down[i])
         }
       }
       g

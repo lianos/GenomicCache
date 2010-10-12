@@ -228,3 +228,10 @@ function(x, ..., global=FALSE) {
   }
   cdir
 })
+
+setMethod("txdb", c(x="GenomicCache"),
+function(x, ...) {
+  x@.txdb
+})
+
+txdbc <- GenomicFeatures:::txdbConn

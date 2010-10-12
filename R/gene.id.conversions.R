@@ -124,17 +124,29 @@ function(x, id, anno.source, rm.unknown) {
 
 setMethod("getEntrezIdFromTranscriptId", c(x="GenomicCache"),
 function(x, id, anno.source, rm.unknown) {
-  getEntrezIdFromTranscriptId(genome(x), id, annotationSource(x), rm.unknown)
+  ## getEntrezIdFromTranscriptId(genome(x), id, annotationSource(x), rm.unknown)
+  getEntrezIdFromTranscriptId(txdb(x), id, annotationSource(x), rm.unknown)
 })
 
 setMethod("getEntrezIdFromTranscriptId", c(x="TranscriptDb"),
 function(x, id, anno.source, rm.unknown) {
-  meta <- metadata(x@.txdb)
-  if (missing(anno.source)) {
-    anno.source <- subset(meta, name == "UCSC Table")$value
+  ## meta <- metadata(x@.txdb)
+  ## if (missing(anno.source)) {
+  ##   anno.source <- subset(meta, name == "UCSC Table")$value
+  ## }
+  ## genome <- subset(meta, name == "Genome")$value
+  ## getEntrezIdFromTranscriptId(genome, id, anno.source, rm.unknown)
+  query <- sprintf("SELECT _tx_id FROM transcript WHERE tx_name='%s'", id)
+  tx.id <- dbGetQuery(txdbc(x), query)[,1]
+  if (length(tx.id) == 0L) {
+    stop("Unknown transcripts: ", paste(id, collapse=","))
   }
-  genome <- subset(meta, name == "Genome")$value
-  getEntrezIdFromTranscriptId(genome, id, anno.source, rm.unknown)
+  df <- data.frame(tx.id=tx.id)
+  query <- "SELECT gene_id,_tx_id FROM gene WHERE _tx_id=?"
+  df <- dbGetPreparedQuery(txdbc(x), query, df)
+  res <- df[["gene_id"]]
+  names(res) <- df[['_tx_id']]
+  res
 })
 
 
@@ -212,7 +224,7 @@ function(x, id, anno.source, rm.unknown) {
     map <- revmap(getAnnMap('REFSEQ2EG', x))
   } else if (anno.source == 'knownGene') {
     map <- getAnnMap('UCSCKG', x)
-  } else (anno.source == 'acembly') {
+  } else if (anno.source == 'acembly') {
     stop("No transcript map for Aceview genes in org.*.db pacakges")
   } else {
     stop("Unknown annotation source (UCSC Table): ", anno.source)
@@ -248,17 +260,27 @@ function(x, id, anno.source, rm.unknown) {
 
 setMethod("getTranscriptIdFromEntrezId", c(x="TranscriptDb"),
 function(x, id, anno.source, rm.unknown) {
-  meta <- metadata(x@.txdb)
-  if (missing(anno.source)) {
-    anno.source <- subset(meta, name == "UCSC Table")$value
+  ## meta <- metadata(x@.txdb)
+  ## if (missing(anno.source)) {
+  ##   anno.source <- subset(meta, name == "UCSC Table")$value
+  ## }
+  ## genome <- subset(meta, name == "Genome")$value
+  ## getTranscriptIdFromEntrezId(genome, id, anno.source, rm.unknown)
+  query <- sprintf("SELECT _tx_id FROM gene WHERE gene_id='%s'", id)
+  tx.id <- dbGetQuery(txdbc(x), query)[,1]
+  if (length(tx.id) == 0L) {
+    stop("Unknown entrez id ", id)
   }
-  genome <- subset(meta, name == "Genome")$value
-  getTranscriptIdFromEntrezId(genome, id, anno.source, rm.unknown)
+  query <- sprintf("SELECT tx_name FROM transcript WHERE _tx_id=?")
+  df <- data.frame("_tx_id"=tx.id)
+  tx.name <- dbGetPreparedQuery(txdbc(x), query, df)[,1]
+  tx.name
 })
 
 setMethod("getTranscriptIdFromEntrezId", c(x="GenomicCache"),
 function(x, id, anno.source, rm.unknown) {
-  getTranscriptIdFromEntrezId(genome(x), id, annotationSource(x), rm.unknown)
+  ## getTranscriptIdFromEntrezId(genome(x), id, annotationSource(x), rm.unknown)
+  getTranscriptIdFromEntrezId(txdb(x), id, annotationSource(x), rm.unknown)  
 })
 
 
