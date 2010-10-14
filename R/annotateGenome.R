@@ -285,14 +285,14 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
 ##       (my cached idealized version is hosed when this happens)
 ## (ii)  the intersection of all transcript boundaries is empty
 ##       (This hoses the utr{3|5}* annotation logic)
-.goodGene <- function(gene) {
-  xcripts <- transcripts(gene)
+.goodGene <- function(gene, which.chr) {
+  xcripts <- transcripts(gene, which.chr=which.chr)
 
   ## Does it map to more than one chromosome?
-  chrs <- unique(as.character(unique(seqnames(xcripts))))
-  if (length(chrs) > 1) {
-    return(FALSE)
-  }
+  ## chrs <- unique(as.character(unique(seqnames(xcripts))))
+  ## if (length(chrs) > 1) {
+  ##   return(FALSE)
+  ## }
 
   ## Are the txBounds disjoint?
   tx.bounds <- lapply(xcripts, function(x) range(ranges(x)))
@@ -338,21 +338,21 @@ annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.u
   annos <- lapply(chrs, function(chr) {
     cat(chr, "...\n")
     chr.length <- seqlengths(bsg)[chr]
-    genes <- getGenesOnChromosome(gcr, chr)
+    genes <- getGenesOnChromosome(gcache, chr)
 
     cat("... cleaning gene models ...\n")
     models <- lapply(genes, function(gene) {
       ## Do not include genes whose transcripts do not overlap at all
       ## or exist on a different chromosome
-      if (.goodGene(gene)) {
+      if (.goodGene(gene, chr)) {
         gm <- idealized(gene, by=gene.by, collapse=gene.collapse,
-                        cds.cover=gene.cds.cover, flank.up=flank.up,
-                        flank.down=flank.down)
+                        cds.cover=gene.cds.cover, flank.up=0, flank.down=0,
+                        which.chr=chr)
         ## remove the utr{3|5}*
-        axe <- grep("*", values(gm)$exon.anno, fixed=TRUE)
-        if (length(axe) > 0L) {
-          gm <- gm[-axe]
-        }
+        ## axe <- grep("*", values(gm)$exon.anno, fixed=TRUE)
+        ## if (length(axe) > 0L) {
+        ##   gm <- gm[-axe]
+        ## }
         gm
       } else {
         NULL
