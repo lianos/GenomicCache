@@ -127,16 +127,18 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
   ## a region that is already annotated, we only take the region that
   ## starts the flank up until the first annotation.
   if (flank.up > 0) {
-    up.fwd <- buildFlankAnnotation(annotated, flank.up, 'up', '+')
-    up.rev <- buildFlankAnnotation(annotated, flank.up, 'up', '-')
-    annotated <- c(annotated, up.fwd, up.rev)
+    up <- buildFlankAnnotation(annotated, flank.up, 'up')
+    ## up.fwd <- buildFlankAnnotation(annotated, flank.up, 'up', '+')
+    ## up.rev <- buildFlankAnnotation(annotated, flank.up, 'up', '-')
+    annotated <- c(annotated, up)
     resort <- TRUE
   }
   
   if (flank.down > 0) {
-    down.fwd <- buildFlankAnnotation(annotated, flank.down, 'down', '+')
-    down.rev <- buildFlankAnnotation(annotated, flank.down, 'down', '-')
-    annotated <- c(annotated, down.fwd, down.rev)
+    down <- buildFlankAnnotation(annotated, flank.down, 'down')
+    ## down.fwd <- buildFlankAnnotation(annotated, flank.down, 'down', '+')
+    ## down.rev <- buildFlankAnnotation(annotated, flank.down, 'down', '-')
+    annotated <- c(annotated, down)
     resort <- TRUE
   }
 
@@ -205,44 +207,27 @@ buildIntronAnnotation <- function(annotated, stranded=TRUE) {
   ((direction == 'down' && (strand == '-')))
 }
 
-buildFlankAnnotation <- function(annotated, fdist, fdir, fstrand) {
-  fdir <- match.arg(fdir, c('up', 'down'))
-  fstrand <- match.arg(fstrand, levels(strand()))
-  if (fstrand == '*') {
-    warning("Building flanks not supported for strand: *")
-    return(GRanges())
-  }
-  
-  is.rev <- strand(annotated) == '-'
-  atake <- if (fstrand == '-') is.rev else !is.rev
-  annotated <- annotated[atake]
-  seqname <- seqnames(annotated)[1]
-  
-  bounds <- annotatedTxBounds(annotated)
-  
-  .flank <- flank(bounds, width=fdist, start=.fstart.val(fdir, fstrand))
+buildFlankAnnotation <- function(annotated, distance, direction) {
+  direction <- match.arg(direction, c('up', 'down'))
+  fix <- if (direction == 'up') 'start' else 'end'
 
-  d <- setdiff(ranges(.flank), ranges(annotated))
-  o <- findOverlaps(d, ranges(bounds), maxgap=1L)
+  bounds <- annotatedTxBounds(annotated)
+  .flank <- flank(bounds, width=distance, start=direction=='up')
+  d <- setdiff(.flank, annotated)
+  d <- resize(d, width=width(d) + 1, fix=fix)
+  o <- findOverlaps(d, bounds)
   mm <- matchMatrix(o)
   if (nrow(mm) > 0) {
-    ## There will be duplicate matches here when there shouldn't be
-    ## I think this is due to small (1) width annotations ... ignore
-    ## these
-    
-    ## axe <- unique(mm[,2][duplicated(mm[,2])])
-    ## axe <- mm[,2] %in% axe
-    ## mm <- mm[!axe,,drop=FALSE]
-
-    ## There should only be max of 1 assignment per new flank,
-    ## uniqueness over txBound ids doesn't work
+    ## There will be duplicate matches here due to txbounds that overlap
+    ## with eachother (think genes inside of other genes).
+    ## In this case, we just ignore all such scenarios
     axe <- unique(mm[, 1][duplicated(mm[, 1])])
     keep <- !(mm[, 1] %in% axe)
     mm <- mm[keep, , drop=FALSE]
-    
-    new.flanks <- GRanges(seqnames=seqname, ranges=d[mm[,1]], strand=fstrand)
+    new.flanks <- d[mm[, 1]]
+    new.flanks <- resize(new.flanks, width=width(new.flanks) - 1, fix=fix)
     values(new.flanks) <- values(bounds)[mm[,2],]
-    exon.anno <- if (fdir == 'up') 'utr5*' else 'utr3*'
+    exon.anno <- if (direction == 'up') 'utr5*' else 'utr3*'
     values(new.flanks)$exon.anno <- exon.anno
   } else {
     new.flanks <- GRanges()
@@ -347,8 +332,8 @@ annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.u
       ## or exist on a different chromosome
       if (.goodGene(gene, chr)) {
         gm <- idealized(gene, by=gene.by, collapse=gene.collapse,
-                        cds.cover=gene.cds.cover, flank.up=flank.up,
-                        flank.down=flank.down, which.chr=chr)
+                        cds.cover=gene.cds.cover, flank.up=0L,
+                        flank.down=0L, which.chr=chr)
         gm
       } else {
         NULL
