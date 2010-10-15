@@ -134,8 +134,8 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
   }
   
   if (flank.down > 0) {
-    down.fwd <- buildFlankAnnotation(annotated, flank.down, 'down', '-')
-    down.rev <- buildFlankAnnotation(annotated, flank.down, 'down', '+')
+    down.fwd <- buildFlankAnnotation(annotated, flank.down, 'down', '+')
+    down.rev <- buildFlankAnnotation(annotated, flank.down, 'down', '-')
     annotated <- c(annotated, down.fwd, down.rev)
     resort <- TRUE
   }
@@ -153,6 +153,7 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
   intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
   annotated <- c(annotated, intergenic)
   annotated <- annotated[order(start(annotated))]
+
   class(annotated) <- 'AnnotatedChromosome'
   annotated
 }
@@ -289,10 +290,10 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
   xcripts <- transcripts(gene)
 
   ## Does it map to more than one chromosome?
-  chrs <- unique(as.character(unique(seqnames(xcripts))))
-  if (length(chrs) > 1) {
-    return(FALSE)
-  }
+  ## chrs <- unique(as.character(unique(seqnames(xcripts))))
+  ## if (length(chrs) > 1) {
+  ##   return(FALSE)
+  ## }
 
   ## Are the txBounds disjoint?
   tx.bounds <- lapply(xcripts, function(x) range(ranges(x)))
@@ -347,7 +348,7 @@ annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.u
       if (.goodGene(gene)) {
         gm <- idealized(gene, by=gene.by, collapse=gene.collapse,
                         cds.cover=gene.cds.cover, flank.up=flank.up,
-                        flank.down=flank.down)
+                        flank.down=flank.down, which.chr=chr)
         ## remove the utr{3|5}*
         axe <- grep("*", values(gm)$exon.anno, fixed=TRUE)
         if (length(axe) > 0L) {
