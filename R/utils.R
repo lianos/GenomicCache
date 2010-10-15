@@ -1,3 +1,8 @@
+na.logical <- function(the.logical) {
+  the.logical[is.na(the.logical)] <- FALSE
+  the.logical
+}
+
 filterByChr <- function(grl, which.chr=NULL) {
   if (!is.null(which.chr)) {
     keep <- sapply(grl, function(g) {

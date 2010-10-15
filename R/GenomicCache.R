@@ -205,6 +205,11 @@ function(x, ...) {
   x@.genome
 })
 
+setMethod("genome", c(x="TranscriptDb"),
+function(x, ...) {
+  subset(metadata(x), name == "Genome")$value
+})
+
 setMethod("dataSource", c(object="GenomicCache"),
 function(object) {
   subset(metadata(object@.txdb), name == "Data source")$value
@@ -213,6 +218,11 @@ function(object) {
 setMethod("annotationSource", c(object="GenomicCache"),
 function(object) {
   subset(metadata(object@.txdb), name == "UCSC Table")$value
+})
+
+setMethod("annotationSource", c(object="TranscriptDb"),
+function(object) {
+  subset(metadata(object), name == "UCSC Table")$value
 })
 
 setMethod("cacheDir", c(x="GenomicCache"),
