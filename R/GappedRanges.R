@@ -13,10 +13,27 @@ setClass("GappedRanges",
                    elementMetadata=NULL),
          contains="Sequence")
 
+##' Constructor for a GappedRanges object.
+##'
+##' Lots of the validation code is taken from the GRanges constructor.
+##'
+##' @param seqnames The chromosome(s) these ranges come from
+##' @param ranges The fenceposts for the gapped ranges
+##' @param gaps An IRangesList as long as ranges. The IRanges in each element
+##' are the gaps for the corresonding ranges "bounds"
+##' @param strand The strand of the ranges
+##' @param values The DataFrame for the elementMetadata for the ranges.
 GappedRanges <- function(seqnames='*', ranges=IRanges(), gaps=NULL,
                          strand=Rle("*", length(ranges)), values=NULL, ...) {
   if (!is(seqnames, 'Rle')) {
     seqnames <- Rle(seqnames)
+  }
+  if (length(seqnames) != length(ranges)) {
+    if (length(seqnames) == 1L) {
+      seqnames <- rep(seqnames, length(ranges))
+    } else {
+      stop("Can't replicate seqnames to match length of ranges")
+    }
   }
   if (!is.factor(runValue(seqnames))) {
     runValue(seqnames) <- factor(runValue(seqnames))
@@ -96,21 +113,88 @@ validGappedRangesGaps <- function(ranges, gaps=NULL) {
     message("Differing lengths for ranges and gaps")
     return(FALSE)
   }
-
+  
   ## Check that all gaps lie within their conjugate ranges
-  for (i in 1:length(ranges)) {
-    grange <- range(gaps[[i]])
-    if (length(grange) > 0) {
-      rrange <- ranges[i]
-      if (start(rrange) > start(grange) || end(rrange) < end(grange)) {
-        message("Out of bounds gaps for range ", i)
-        return(FALSE)
+  if (length(ranges) != 0L) {
+    for (i in 1:length(ranges)) {
+      grange <- range(gaps[[i]])
+      if (length(grange) > 0) {
+        rrange <- ranges[i]
+        if (start(rrange) > start(grange) || end(rrange) < end(grange)) {
+          message("Out of bounds gaps for range ", i)
+          return(FALSE)
+        }
       }
     }
   }
 
   TRUE
 }
+
+setMethod("findOverlaps", c("IRanges", "GappedRanges"),
+function(query, subject, maxgap=0L, minoverlap=1L,
+         type=c("any", "start", "end", "within", "equal"),
+         select=c("all", "first", "last", "arbitrary"), ...) {
+  stop("Implement findOverlaps for GappedRanges")
+  type <- match.arg(type)
+  select <- match.arg(select)
+  
+  o <- findOverlaps(query, ranges(subject), maxgap, minoverlap, type, select,
+                    ...)
+})
+
+setMethod("subsetByOverlaps", c("GRangesTree", "GRanges"),
+function(query, subject, maxgap=0L, minoverlap=1L,
+         type=c('any', 'start', 'end')) {
+  stop("Implement subsetByOverlaps for GappedRanges")
+  ## The code below was taken from GRangesTree:::subsetByOveralps
+  .seqranges <- split(subject, seqnames(subject))
+  seqover <- lapply(.seqranges, function(seqranges) {
+    if (length(seqranges) == 0L) {
+      return(NULL)
+    }
+    seqname <- as.character(seqnames(seqranges)[1])
+    chr.tree <- query@trees[[seqname]]
+    if (is.null(chr.tree)) {
+      return(NULL)
+    }
+    .stranges <- split(seqranges, strand(seqranges))
+    s <- lapply(.stranges, function(stranges) {
+      if (length(stranges) == 0L) {
+        return(NULL)
+      }
+      strandname <- as.character(strand(stranges)[1])
+      if (strandname == '*') {
+        .ranges <- c(IRanges(chr.tree[['+']]), IRanges(chr.tree[['-']]),
+                     IRanges(chr.tree[['*']]))
+        str.tree <- IntervalTree(.ranges)
+      } else {
+        str.tree <- chr.tree[[strandname]]
+      }
+      if (is.null(str.tree)) {
+        return(NULL)
+      }
+      o <- findOverlaps(ranges(stranges), str.tree, maxgap=maxgap,
+                        minoverlap=minoverlap)
+      if (length(o) == 0L) {
+        return(NULL)
+      }
+      GRanges(seqnames=seqname,
+              ranges=as(str.tree[subjectHits(o)], 'IRanges'),
+              strand=strandname)
+    })
+    names(s) <- names(.stranges)
+    s <- s[!sapply(s, is.null)]
+  })
+  seqover <- seqover[!sapply(seqover, is.null)]
+  if (length(seqover) == 0L) {
+    GRanges()
+  } else {
+    seqover <- unlist(seqover)
+    names(seqover) <- NULL
+    do.call(c, seqover)
+  }
+})
 
 setMethod("show", c(object="GappedRanges"),
 function(object) {
