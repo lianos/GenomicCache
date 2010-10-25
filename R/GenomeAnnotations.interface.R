@@ -41,7 +41,7 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL,
       }
       g <- tryCatch(GFGene(tx.id=tx, gcache), error=function(e) NULL)
       if (!is.null(g)) {
-        cat(chr, symbol(g), "\n")
+        ## cat(chr, symbol(g), "\n")
         xcripts <- transcripts(g, which.chr=chr)
         to <- .idx + length(xcripts) - 1
         .so.far[.idx:to] <<- values(xcripts)$tx_name

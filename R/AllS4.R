@@ -99,4 +99,8 @@ setGeneric("chromosomes", function(x, ...) {
 setGeneric("cacheDir", function(x, ...) standardGeneric("cacheDir"))
 setGeneric("txdb", function(x, ...) standardGeneric("txdb"))
 
+################################################################################
+## Methods: (G)GappedRanges
+setGeneric("gwidth", function(x, ...) standardGeneric("gwidth"))
+
 ## setGeneric("txdbConn", function(txdb) standardGeneric('txdbConn'))

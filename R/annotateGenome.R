@@ -1,3 +1,6 @@
+## NOTE: 2010-10-23 -- Integrating entrez.id into the values() of annotated
+## chromosomes. We should switch to them as the primary key instead of using
+## the gene symbol. All entrez.id in here stuff hasn't been tested yet.
 setClass('AnnotatedChromosome', contains="GRanges")
 
 .annotatedChromosomeFileName <- function(gcache, seqname, flank.up, flank.down,
@@ -100,6 +103,7 @@ annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
                        seqlengths=seqlength)
       values(clean) <- values(g.exons)[mm[, 1],,drop=FALSE]
       values(clean)$symbol <- g.name
+      values(clean)$entrez.id <- metadata(g.exons)$entrez.id
     } else {
       clean <- GRanges()
     }
@@ -240,6 +244,7 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
   ## Calculate inferredmax-bounds by symbol
   dt <- data.table(start=start(annotated), end=end(annotated),
                    symbol=values(annotated)$symbol,
+                   entrez.id=values(annotated)$entrez.id,
                    strand=as.character(strand(annotated)))
   key(dt) <- 'symbol'
   bounds <- dt[, {
@@ -251,7 +256,8 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
                     ranges=IRanges(start=bounds$start, end=bounds$end),
                     strand=bounds$strand)
   values(flanks) <- DataFrame(exon.anno='flank',
-                              symbol=as.character(bounds$symbol))
+                              symbol=as.character(bounds$symbol),
+                              entrez.id=bounds$entrez.id)
   is.rev <- strand(flanks) == '-'
   if (flank.up > 0) {
     ranges(flanks) <- resize(ranges(flanks), width(flanks) + flank.up,
@@ -334,6 +340,7 @@ annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.u
         gm <- idealized(gene, by=gene.by, collapse=gene.collapse,
                         cds.cover=gene.cds.cover, flank.up=0L,
                         flank.down=0L, which.chr=chr)
+        metadata(gm) <- list(entrez.id=entrezId(gene))
         gm
       } else {
         NULL
