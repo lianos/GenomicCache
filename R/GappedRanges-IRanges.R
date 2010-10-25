@@ -1,5 +1,8 @@
 GappedRanges <- function(irl=IRangesList(), ...) {
-  if (is(irl, 'IRanges')) {
+  if (is.numeric(irl)) {
+    irl <- replicate(irl, IRanges(0, 0))
+  }
+  if (is(irl, 'IRanges') || is(irl, 'list')) {
     irl <- IRangesList(irl)
   }
   args <- list(...)
@@ -36,7 +39,7 @@ function(x, i, j, ..., value) {
   }
 
   if (missing(i)) {
-    i <- 1:length(x)
+    i <- rep(TRUE, length(x))
   }
   
   if (!missing(j)) {
