@@ -240,24 +240,27 @@ buildFlankAnnotation <- function(annotated, distance, direction) {
   new.flanks
 }
 
-annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
+annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
+                              as.data.table=FALSE) {
   ## Calculate inferredmax-bounds by symbol
   dt <- data.table(start=start(annotated), end=end(annotated),
                    symbol=values(annotated)$symbol,
-                   entrez.id=values(annotated)$entrez.id,
+                   ## entrez.id=values(annotated)$entrez.id,
                    strand=as.character(strand(annotated)))
   key(dt) <- 'symbol'
   bounds <- dt[, {
     list(start=min(start), end=max(end), strand=strand[1])
   }, by='symbol']
   bounds <- bounds[!is.na(bounds$symbol),]
+  
   ## calculate flanks
   flanks <- GRanges(seqnames=seqnames(annotated[1]),
                     ranges=IRanges(start=bounds$start, end=bounds$end),
                     strand=bounds$strand)
   values(flanks) <- DataFrame(exon.anno='flank',
-                              symbol=as.character(bounds$symbol),
-                              entrez.id=bounds$entrez.id)
+                              symbol=as.character(bounds$symbol))
+                              ## entrez.id=bounds$entrez.id)
+                              ## )
   is.rev <- strand(flanks) == '-'
   if (flank.up > 0) {
     ranges(flanks) <- resize(ranges(flanks), width(flanks) + flank.up,
@@ -268,7 +271,15 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L) {
                              fix=ifelse(is.rev, 'end', 'start'))
   }
 
-  flanks <- flanks[order(start(flanks))]
+  if (as.data.table) {
+    flanks <- data.table(start=start(flanks), end=end(flanks),
+                         symbol=values(flanks)$symbol,
+                         ## entrez.id=values(annotated)$entrez.id,
+                         strand=as.character(strand(flanks)))
+    key(flanks) <- 'symbol'
+  } else {
+    flanks <- flanks[order(start(flanks))]
+  }
   flanks
 }
 
