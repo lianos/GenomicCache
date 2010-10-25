@@ -1,4 +1,5 @@
 na.logical <- function(the.logical) {
+  the.logical <- as.logical(the.logical)
   the.logical[is.na(the.logical)] <- FALSE
   the.logical
 }
