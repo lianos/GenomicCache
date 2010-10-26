@@ -323,11 +323,10 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
 ##' \code{GFGene::idealized} function
 ##' @param gene.collapse The \code{collapse} parameter for the
 ##' \code{GFGene::idealized} function
-annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.up,
-                                      stranded=TRUE, gene.by='all',
-                                      gene.collapse='cover',
-                                      gene.cds.cover='min', chrs=NULL,
-                                      do.save=TRUE, ...) {
+generateAnnotatedChromosomesByGenes <-
+  function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
+           gene.by='all', gene.collapse='cover', gene.cds.cover='min',
+           chrs=NULL, do.save=TRUE, ...) {
   bsg <- getBsGenome(gcache)
   if (is.null(chrs)) {
     chrs <- chromosomes(gcache)
@@ -364,7 +363,7 @@ annotateChromosomeByGenes <- function(gcache, flank.up=1000L, flank.down=flank.u
     chr.anno <- annotateChromosome(models, flank.up, flank.down,
                                    seqname=chr, seqlength=chr.length,
                                    stranded=stranded)
-    cat(proc.time()['elapsed'] - st, "secons\n")
+    cat(proc.time()['elapsed'] - st, "seconds\n")
 
     if (do.save) {
       fn <- .annotatedChromosomeFileName(gcache, chr, flank.up, flank.down,
