@@ -31,282 +31,6 @@ getAnnotatedChromosome <- function(gcache, seqname, flank.up=1000L,
   anno
 }
 
-##' Calculates a GRanges object for a chromosome, with internal ranges
-##' corresponding to annotated exon boundaries for genes.
-##'
-##' NOTE: It's not clear how a genomic locus that belongs to an intron of
-##' two genes is assigned the "gene owner". Investigate further!
-##' 
-##' @param gene.list list of GRanges objects, each object in the list indicates
-##' the set of exons (across all isoforms) for a gene -- such as you might get
-##' from \code{\link{idealized}(GFGene)}. This can also be a \code{GRangesList},
-##' but a normal list is preffered for now since GRangesList object are slow
-##' to iterate over.
-##' @param flank.up The number of basepairs to extend the 5'utr annotation
-##' @param flank.down The number of basepairs to extend the 3'utr annotation
-##' @param seqname The name of the chromosome we are building annotations for
-##' @param seqlength The length of the chromosome
-annotateChromosome <- function(gene.list, flank.up=0L, flank.down=flank.up,
-                               seqname='NA', seqlength=NA, stranded=TRUE) {
-  if (!stranded) {
-    stop("Unstranded annotation not fully functional ... look to fix code ",
-         "from 'buildFlank...' onwards ...")
-  }
-  ## Parameter Bureaucracy
-  sl <- integer()
-  sl[[seqname]] <- seqlength
-  seqlength <- sl
-  
-  if (is(gene.list, 'GRangesList')) {
-    exons <- unlist(gene.list)
-  } else {
-    gl <- gene.list
-    names(gl) <- NULL
-    exons <- do.call(c, gl)
-  }
-  
-  ## I am handling strand issues outside of the GRanges framework
-  if (!stranded) {
-    strand(exons) <- '*'
-  }
-  exons <- split(exons, strand(exons))
-  
-  ## Locate intervals that are "excluively" annotated, and others that
-  ## have two+ annotations on the same region.
-  interval.annos <- lapply(exons, function(.exons) {
-    if (length(.exons) == 0L) {
-      exclusive.itree <- IntervalTree(IRanges())
-      overlap.itree <- IntervalTree(IRanges())
-    } else {
-      d.exons <- disjoin(.exons)
-      d.matches <- subjectHits(findOverlaps(.exons, d.exons))
-      d.tab <- tabulate(d.matches)
-      exclusive <- d.tab == 1L
-      exclusive.itree <- IntervalTree(ranges(d.exons[exclusive]))
-      overlap.itree <- IntervalTree(reduce(ranges(d.exons[!exclusive])))
-    }
-    list(exclusive=exclusive.itree, overlap=overlap.itree)
-  })
-
-  ## Use the "exclusive intervals" to pull out the strictly exclusive exons
-  ## per gene.
-  clean.list <- lapply(1:length(gene.list), function(idx) {
-    g.name <- names(gene.list)[idx]
-    g.exons <- gene.list[[idx]]
-    ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
-    itree <- interval.annos[[ref.strand]]$exclusive
-    mm <- matchMatrix(findOverlaps(ranges(g.exons), itree))
-    if (nrow(mm) > 0) {
-      clean <- GRanges(seqnames=seqname,
-                       ranges=IRanges(itree[mm[, 2]]),
-                       strand=ref.strand,
-                       seqlengths=seqlength)
-      values(clean) <- values(g.exons)[mm[, 1],,drop=FALSE]
-      values(clean)$symbol <- g.name
-      values(clean)$entrez.id <- metadata(g.exons)$entrez.id
-    } else {
-      clean <- GRanges()
-    }
-    clean
-  })
-
-  annotated <- do.call(c, clean.list)
-  
-  ## Convert overlap regions to GRanges and combine
-  overlaps <- lapply(names(interval.annos), function(istrand) {
-    itree <- interval.annos[[istrand]]$overlap
-    if (length(itree) > 0L) {
-      GRanges(seqnames=seqname, ranges=IRanges(itree), strand=istrand)
-    } else {
-      GRanges()
-    }
-  })
-  overlaps <- do.call(c, overlaps)
-  values(overlaps) <- DataFrame(exon.anno='overlap', symbol=NA)
-  
-  annotated <- c(annotated, overlaps)
-  annotated <- annotated[order(start(annotated))]
-
-  ## Annotated extended/flanking utrs. If the extended flank runs into
-  ## a region that is already annotated, we only take the region that
-  ## starts the flank up until the first annotation.
-  if (flank.up > 0) {
-    up <- buildFlankAnnotation(annotated, flank.up, 'up')
-    ## up.fwd <- buildFlankAnnotation(annotated, flank.up, 'up', '+')
-    ## up.rev <- buildFlankAnnotation(annotated, flank.up, 'up', '-')
-    annotated <- c(annotated, up)
-    resort <- TRUE
-  }
-  
-  if (flank.down > 0) {
-    down <- buildFlankAnnotation(annotated, flank.down, 'down')
-    ## down.fwd <- buildFlankAnnotation(annotated, flank.down, 'down', '+')
-    ## down.rev <- buildFlankAnnotation(annotated, flank.down, 'down', '-')
-    annotated <- c(annotated, down)
-    resort <- TRUE
-  }
-
-  if (resort) {
-    annotated <- annotated[order(start(annotated))]
-    resort <- FALSE
-  }
-  
-  ## Annotate introns
-  introns <- buildIntronAnnotation(annotated, stranded=stranded)
-  annotated <- c(annotated, introns)
-  
-  ## Whatever isn't marked by now must be intergenic
-  intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
-  annotated <- c(annotated, intergenic)
-  annotated <- annotated[order(start(annotated))]
-
-  class(annotated) <- 'AnnotatedChromosome'
-  annotated
-}
-
-## if (FALSE) {
-##   dt <- data.table(symbol=values(annotated)$symbol,
-##                    strand=as.character(strand(annotated)),
-##                    start=start(annotated),
-##                    end=end(annotated),
-##                    exon.anno=values(annotated)$exon.anno)
-##   key(dt) <- 'symbol'
-## }
-
-buildIntergenicRegions <- function(annotated, stranded=TRUE) {
-  intergenic <- gaps(annotated)
-  take <- as.logical(seqnames(intergenic) == seqnames(annotated)[1])
-  intergenic <- intergenic[take]
-  if (stranded) {
-    intergenic <- intergenic[strand(intergenic) != '*']
-  }
-  values(intergenic) <- DataFrame(exon.anno='intergenic', symbol=NA)
-  intergenic
-}
-
-buildIntronAnnotation <- function(annotated, stranded=TRUE) {
-  bounds <- annotatedTxBounds(annotated)
-  unannotated <- gaps(annotated)
-  if (stranded) {
-    unannotated <- unannotated[strand(unannotated) != '*']
-  }
-  o <- findOverlaps(unannotated, bounds)
-  mm <- matchMatrix(o)
-
-  if (nrow(mm) > 0) {
-    ## redundant matches can happen -- we ignore them for now (danger!)
-    ## and just pick the first
-    m2 <- mm[!duplicated(mm[, 1]),,drop=FALSE]
-    introns <- unannotated[m2[,1]]
-    values(introns) <- DataFrame(exon.anno='intron',
-                                 symbol=values(bounds)$symbol[m2[, 2]])
-  } else {
-    introns <- GRanges()
-  }
-  introns
-}
-
-.fstart.val <- function(direction, strand) {
-  ((direction == 'up') && (strand %in% c('+', '*'))) ||
-  ((direction == 'down' && (strand == '-')))
-}
-
-buildFlankAnnotation <- function(annotated, distance, direction) {
-  direction <- match.arg(direction, c('up', 'down'))
-  fix <- if (direction == 'up') 'start' else 'end'
-
-  bounds <- annotatedTxBounds(annotated)
-  .flank <- flank(bounds, width=distance, start=direction=='up')
-  d <- setdiff(.flank, annotated)
-  d <- resize(d, width=width(d) + 1, fix=fix)
-  o <- findOverlaps(d, bounds)
-  mm <- matchMatrix(o)
-  if (nrow(mm) > 0) {
-    ## There will be duplicate matches here due to txbounds that overlap
-    ## with eachother (think genes inside of other genes).
-    ## In this case, we just ignore all such scenarios
-    axe <- unique(mm[, 1][duplicated(mm[, 1])])
-    keep <- !(mm[, 1] %in% axe)
-    mm <- mm[keep, , drop=FALSE]
-    new.flanks <- d[mm[, 1]]
-    new.flanks <- resize(new.flanks, width=width(new.flanks) - 1, fix=fix)
-    values(new.flanks) <- values(bounds)[mm[,2],]
-    exon.anno <- if (direction == 'up') 'utr5*' else 'utr3*'
-    values(new.flanks)$exon.anno <- exon.anno
-  } else {
-    new.flanks <- GRanges()
-  }
-
-  new.flanks
-}
-
-annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
-                              as.data.table=FALSE) {
-  ## Calculate inferredmax-bounds by symbol
-  dt <- data.table(start=start(annotated), end=end(annotated),
-                   symbol=values(annotated)$symbol,
-                   ## entrez.id=values(annotated)$entrez.id,
-                   strand=as.character(strand(annotated)))
-  key(dt) <- 'symbol'
-  bounds <- dt[, {
-    list(start=min(start), end=max(end), strand=strand[1])
-  }, by='symbol']
-  bounds <- bounds[!is.na(bounds$symbol),]
-  
-  ## calculate flanks
-  flanks <- GRanges(seqnames=seqnames(annotated[1]),
-                    ranges=IRanges(start=bounds$start, end=bounds$end),
-                    strand=bounds$strand)
-  values(flanks) <- DataFrame(exon.anno='flank',
-                              symbol=as.character(bounds$symbol))
-                              ## entrez.id=bounds$entrez.id)
-                              ## )
-  is.rev <- strand(flanks) == '-'
-  if (flank.up > 0) {
-    ranges(flanks) <- resize(ranges(flanks), width(flanks) + flank.up,
-                             fix=ifelse(is.rev, 'start', 'end'))
-  }
-  if (flank.down > 0) {
-    ranges(flanks) <- resize(ranges(flanks), width(flanks) + flank.down,
-                             fix=ifelse(is.rev, 'end', 'start'))
-  }
-
-  if (as.data.table) {
-    flanks <- data.table(start=start(flanks), end=end(flanks),
-                         symbol=values(flanks)$symbol,
-                         ## entrez.id=values(annotated)$entrez.id,
-                         strand=as.character(strand(flanks)))
-    key(flanks) <- 'symbol'
-  } else {
-    flanks <- flanks[order(start(flanks))]
-  }
-  flanks
-}
-
-## Flagging genes as "bad" if:
-## (i)   they map to more than one chromosome
-##       (my cached idealized version is hosed when this happens)
-## (ii)  the intersection of all transcript boundaries is empty
-##       (This hoses the utr{3|5}* annotation logic)
-.goodGene <- function(gene, which.chr) {
-  xcripts <- transcripts(gene, which.chr=which.chr)
-
-  ## Does it map to more than one chromosome?
-  ## chrs <- unique(as.character(unique(seqnames(xcripts))))
-  ## if (length(chrs) > 1) {
-  ##   return(FALSE)
-  ## }
-
-  ## Are the txBounds disjoint?
-  tx.bounds <- lapply(xcripts, function(x) range(ranges(x)))
-  if (length(Reduce(intersect, tx.bounds)) == 0) {
-    return(FALSE)
-  }
-  
-  TRUE
-}
-
-
 ##' The crank that turns the annotateChromosome function over the chromosomes
 ##' of a \code{GenomicCache}
 ##'
@@ -341,7 +65,8 @@ generateAnnotatedChromosomesByGenes <-
     cat(chr, "...\n")
     chr.length <- seqlengths(bsg)[chr]
     genes <- getGenesOnChromosome(gcache, chr)
-
+    entrez.id <- sapply(genes, entrezId)
+    
     cat("... cleaning gene models ...\n")
     models <- lapply(genes, function(gene) {
       ## Do not include genes whose transcripts do not overlap at all
@@ -356,23 +81,343 @@ generateAnnotatedChromosomesByGenes <-
         NULL
       }
     })
-    models <- models[!sapply(models, is.null)]
-    
-    cat("... annotating chromosome ...")
-    st <- proc.time()['elapsed']
-    chr.anno <- annotateChromosome(models, flank.up, flank.down,
-                                   seqname=chr, seqlength=chr.length,
-                                   stranded=stranded)
-    cat(proc.time()['elapsed'] - st, "seconds\n")
+    keep <- !sapply(models, is.null)
+    models <- models[keep]
+    entrez.id <- entrez.id[keep]
 
-    if (do.save) {
-      fn <- .annotatedChromosomeFileName(gcache, chr, flank.up, flank.down,
-                                         stranded)
-      save(chr.anno, file=fn)
+    if (length(models) > 0) {
+      cat("... annotating chromosome ...")
+      st <- proc.time()['elapsed']
+      chr.anno <- annotateChromosome(models, entrez.id, flank.up, flank.down,
+                                     seqname=chr, seqlength=chr.length,
+                                     stranded=stranded)
+      cat(proc.time()['elapsed'] - st, "seconds\n")
+
+      if (do.save) {
+        fn <- .annotatedChromosomeFileName(gcache, chr, flank.up, flank.down,
+                                           stranded)
+        save(chr.anno, file=fn)
+      }
+    } else {
+      cat("No genes found ... skipping\n")
+      chr.anno <- NULL
     }
-
     chr.anno
   })
 
   annos
 }
+
+##' Calculates a GRanges object for a chromosome, with internal ranges
+##' corresponding to annotated exon boundaries for genes.
+##'
+##' NOTE: It's not clear how a genomic locus that belongs to an intron of
+##' two genes is assigned the "gene owner". Investigate further!
+##' 
+##' @param gene.list list of GRanges objects, each object in the list indicates
+##' the set of exons (across all isoforms) for a gene -- such as you might get
+##' from \code{\link{idealized}(GFGene)}. This can also be a \code{GRangesList},
+##' but a normal list is preffered for now since GRangesList object are slow
+##' to iterate over.
+##' @param entrez.id A vector of entrez id's that correspond to the genes in
+##' gene.list
+##' @param flank.up The number of basepairs to extend the 5'utr annotation
+##' @param flank.down The number of basepairs to extend the 3'utr annotation
+##' @param seqname The name of the chromosome we are building annotations for
+##' @param seqlength The length of the chromosome
+annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
+                               flank.down=flank.up, seqname=NULL,
+                               seqlength=NA_integer_, stranded=TRUE) {
+  if (length(entrez.id) != length(gene.list)) {
+    stop("Must have entrezIds for all genes in gene.list")
+  }
+  if (!stranded) {
+    stop("Unstranded annotation not fully functional ... look to fix code ",
+         "from 'buildFlank...' onwards ...")
+  }
+  
+  ## Parameter Bureaucracy
+  if (is.null(seqname)) {
+    seqname <- as.character(seqnames(gene.list[[1]][1]))
+  }
+  if (is.null(seqlength)) {
+      names(seqlength) <- seqname
+  }
+  
+  if (is(gene.list, 'GRangesList')) {
+    exons <- unlist(unname(gene.list))
+  } else {
+    if (!all(sapply(gene.list, inherits, 'GRanges'))) {
+      stop("Illegal object passed into gene.list")
+    }
+    exons <- do.call(c, unname(gene.list))
+  }
+  
+  ## I am handling strand issues outside of the GRanges framework
+  if (!stranded) {
+    strand(exons) <- '*'
+  }
+  exons <- split(exons, strand(exons))
+  
+  ## Locate intervals that are "excluively" annotated, and others that
+  ## have two+ annotations on the same region.
+  interval.annos <- lapply(exons, function(.exons) {
+    lapply(splitRangesByOverlap(ranges(.exons)), IntervalTree)
+  })
+  
+  ## Use the "exclusive intervals" to redefine the exclusive portions of exons
+  ## in each gene model by using the exclusive intervals that overlap with
+  ## each genes exon.
+  clean.list <- lapply(1:length(gene.list), function(idx) {
+    g.exons <- gene.list[[idx]]
+    ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
+    itree <- interval.annos[[ref.strand]]$exclusive
+    mm <- matchMatrix(findOverlaps(ranges(g.exons), itree))
+    if (nrow(mm) > 0) {
+      ## use exclusive ranges only for exon boundaries
+      clean <- GRanges(seqnames=seqname, ranges=IRanges(itree[mm[, 2]]),
+                       strand=ref.strand, seqlengths=seqlength)
+      ## Take annotations from original exons
+      values(clean) <- values(g.exons)[mm[, 1], , drop=FALSE]
+      values(clean)$symbol <- names(gene.list)[idx]
+      values(clean)$entrez.id <- entrez.id[idx]
+    } else {
+      clean <- GRanges()
+    }
+    clean
+  })
+  
+  annotated <- do.call(c, clean.list)
+  
+  ## Convert overlap regions to GRanges and combine
+  overlaps <- lapply(names(interval.annos), function(istrand) {
+    itree <- interval.annos[[istrand]]$overlap
+    if (length(itree) > 0L) {
+      GRanges(seqnames=seqname, ranges=IRanges(itree), strand=istrand)
+    } else {
+      GRanges()
+    }
+  })
+  overlaps <- do.call(c, overlaps)
+  if (length(overlaps) > 0) {
+    values(overlaps) <- DataFrame(exon.anno='overlap', symbol=NA, entrez.id=NA)
+    annotated <- c(annotated, overlaps)
+  }
+  annotated <- annotated[order(ranges(annotated))]
+  
+  ## Annotated extended/flanking utrs. If the extended flank runs into
+  ## a region that is already annotated, we only take the region that
+  ## starts the flank up until the first annotation.
+  if (flank.up > 0) {
+    up <- buildFlankAnnotation(annotated, flank.up, 'up', seqlength)
+    annotated <- c(annotated, up)
+    resort <- TRUE
+  }
+  
+  if (flank.down > 0) {
+    down <- buildFlankAnnotation(annotated, flank.down, 'down', seqlength)
+    annotated <- c(annotated, down)
+    resort <- TRUE
+  }
+
+  if (resort) {
+    annotated <- annotated[order(ranges(annotated))]
+    resort <- FALSE
+  }
+  
+  ## Annotate introns
+  introns <- buildIntronAnnotation(annotated, stranded=stranded)
+  annotated <- c(annotated, introns)
+  
+  ## Whatever isn't marked by now must be intergenic
+  intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
+  annotated <- c(annotated, intergenic)
+  annotated <- annotated[order(ranges(annotated))]
+
+  class(annotated) <- 'AnnotatedChromosome'
+  annotated
+}
+
+##' Returns the exclusive portion of the ranges in .ranges as $exclusive.
+##' The regions that ovlerpa in .ranges are removed and put into $overlap
+##'
+##' @return An \code{\link{IRangesList}} object with $exsluive and $overlap
+splitRangesByOverlap <- function(.ranges) {
+  if (!inherits(.ranges, 'IRanges')) {
+    stop("IRanges object required")
+  }
+  if (length(.ranges) == 0L) {
+    exclusive <- IRanges()
+    overlap <- IRanges()
+  } else {
+    disjoint.ranges <- disjoin(.ranges)
+    disjoint.matches <- subjectHits(findOverlaps(.ranges, disjoint.ranges))
+    ## A range is exclusive if it doesn't overlap more than one disjoint.range
+    is.exclusive <- tabulate(disjoint.matches) == 1L
+    exclusive <- disjoint.ranges[is.exclusive]
+    overlap <- reduce(disjoint.ranges[!is.exclusive])
+  }
+  IRangesList(exclusive=exclusive, overlap=overlap)
+}
+
+buildIntergenicRegions <- function(annotated, stranded=TRUE) {
+  intergenic <- gaps(annotated)
+  take <- as.logical(seqnames(intergenic) == seqnames(annotated)[1])
+  intergenic <- intergenic[take]
+  if (stranded) {
+    intergenic <- intergenic[strand(intergenic) != '*']
+  }
+  values(intergenic) <- DataFrame(exon.anno='intergenic', symbol=NA,
+                                  entrez.id=NA)
+  intergenic
+}
+
+buildIntronAnnotation <- function(annotated, stranded=TRUE) {
+  bounds <- annotatedTxBounds(annotated)
+  unannotated <- gaps(annotated)
+  if (stranded) {
+    unannotated <- unannotated[strand(unannotated) != '*']
+  }
+  o <- findOverlaps(unannotated, bounds)
+  mm <- matchMatrix(o)
+
+  if (nrow(mm) > 0) {
+    ## redundant matches can happen -- we ignore them for now (danger!)
+    ## and just pick the first
+    m2 <- mm[!duplicated(mm[, 1]),,drop=FALSE]
+    introns <- unannotated[m2[,1]]
+    values(introns) <- DataFrame(exon.anno='intron',
+                                 symbol=values(bounds)$symbol[m2[, 2]],
+                                 entrez.id=values(bounds)$entrez.id[m2[, 2]])
+  } else {
+    introns <- GRanges()
+  }
+  introns
+}
+
+.fstart.val <- function(direction, strand) {
+  ((direction == 'up') && (strand %in% c('+', '*'))) ||
+  ((direction == 'down' && (strand == '-')))
+}
+
+buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
+  direction <- match.arg(direction, c('up', 'down'))
+  resize.fix <- if (direction == 'up') 'start' else 'end'
+  flank.start <- direction == 'up'
+  exon.anno <- if (direction == 'up') 'utr5*' else 'utr3*'
+  bounds <- annotatedTxBounds(annotated)
+  flanks <- flank(bounds, width=distance, start=flank.start)
+  unique.flanks <- setdiff(flanks, annotated)
+  unique.flanks <- resize(unique.flanks, width=width(unique.flanks) + 1,
+                          fix=resize.fix)
+  o <- findOverlaps(unique.flanks, bounds)
+  mm <- matchMatrix(o)
+  
+  if (nrow(mm) > 0) {
+    ## There will be duplicate matches here due to txbounds that overlap
+    ## with eachother (think genes inside of other genes). Keep only flanks
+    ## that overlap with one annotated tx bound, the others are tossed.
+    keep <- tabulate(mm[, 1]) == 1L
+    mm <- mm[keep, , drop=FALSE]
+    new.flanks <- unique.flanks[mm[, 1]]
+    new.flanks <- resize(new.flanks, width=width(new.flanks)-1, fix=resize.fix)
+    values(new.flanks) <- values(bounds)[mm[, 2], , drop=FALSE]
+    values(new.flanks)$exon.anno <- exon.anno
+  } else {
+    new.flanks <- GRanges()
+  }
+
+  new.flanks <- trimRangesToSeqlength(new.flanks, seqlength)  
+  new.flanks
+}
+
+trimRangesToSeqlength <- function(granges, seqlength=NA) {
+  if (!is.na(seqlength)) {
+    too.low <- start(granges) < 1
+    if (any(too.low)) {
+      granges[too.low] <- 1L
+    }
+    if (!is.na(seqlength)) {
+      too.high <- end(granges) > seqlength
+      if (any(too.high)) {
+        end(granges) <- seqlength
+      }
+    }
+  }
+  granges
+}
+
+annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=NA) {
+  ## Calculate inferredmax-bounds by symbol
+  dt <- as(annotated, 'data.table')
+  key(dt) <- 'entrez.id'
+  axe.col <- which(colnames(dt) == 'entrez.id')
+  bounds <- dt[, {
+    .sd <- .SD[1]
+    .sd$start <- min(start)
+    .sd$end <- max(end)
+    .sd <- .sd[, -axe.col, with=FALSE]
+    .sd
+  }, by='entrez.id']
+  bounds <- bounds[!is.na(bounds$entrez.id),]
+
+  bounds <- as(bounds, 'GRanges')
+  if (flank.up > 0) {
+    bounds <- resize(bounds, width=width(bounds) + flank.up, fix='end')
+  }
+  if (flank.down > 0) {
+    bounds <- resize(bounds, width=width(bounds) + flank.down, fix='start')
+  }
+  if (length(unique(seqnames(bounds))) == 1) {
+    bounds <- bounds[order(ranges(bounds))]
+  }
+
+  new.meta <- resortColumns(values(bounds), values(annotated))
+  meta <- values(annotated)
+  for (col in colnames(meta)) {
+    if (is.character(meta[[col]])) {
+      new.meta[[col]] <- as.character(new.meta[[col]])
+    }
+  }
+  values(bounds) <- new.meta
+
+  if (flank.up + flank.down > 0 && !is.na(seqlength)) {
+    bounds <- trimRangesToSeqlength(bounds, seqlength)
+  }
+  
+  bounds
+}
+
+resortColumns <- function(from, to) {
+  common.names <- intersect(colnames(from), colnames(to))
+  if (length(common.names) != length(colnames(from))) {
+    stop("Need matching column names")
+  }
+  xref <- match(colnames(to), colnames(from))
+  from[, xref]
+}
+
+## Flagging genes as "bad" if:
+## (i)   they map to more than one chromosome
+##       (my cached idealized version is hosed when this happens)
+## (ii)  the intersection of all transcript boundaries is empty
+##       (This hoses the utr{3|5}* annotation logic)
+.goodGene <- function(gene, which.chr) {
+  xcripts <- transcripts(gene, which.chr=which.chr)
+
+  ## Does it map to more than one chromosome?
+  ## chrs <- unique(as.character(unique(seqnames(xcripts))))
+  ## if (length(chrs) > 1) {
+  ##   return(FALSE)
+  ## }
+
+  ## Are the txBounds disjoint?
+  tx.bounds <- lapply(xcripts, function(x) range(ranges(x)))
+  if (length(Reduce(intersect, tx.bounds)) == 0) {
+    return(FALSE)
+  }
+  
+  TRUE
+}
+
+
