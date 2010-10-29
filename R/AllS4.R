@@ -26,6 +26,8 @@ setClass("EnsemblGene", contains="GFGene")
 setClass("AceviewGene", contains="GFGene")
 setClass("UcscGene", contains="GFGene")
 
+setClass('AnnotatedChromosome', contains="GRanges")
+
 ################################################################################
 ## Methods : Generic (work on all GenomicFeaturesX-type objects)
 

@@ -1,8 +1,11 @@
+setAs("GRanges", "AnnotatedChromosome", function(from) {
+  class(from) <- "AnnotatedChromosome"
+  from
+})
+
 ## NOTE: 2010-10-23 -- Integrating entrez.id into the values() of annotated
 ## chromosomes. We should switch to them as the primary key instead of using
 ## the gene symbol. All entrez.id in here stuff hasn't been tested yet.
-setClass('AnnotatedChromosome', contains="GRanges")
-
 .annotatedChromosomeFileName <- function(gcache, seqname, flank.up, flank.down,
                                          stranded) {
   stranded <- if (stranded) 'stranded' else 'not-stranded'
@@ -27,8 +30,7 @@ getAnnotatedChromosome <- function(gcache, seqname, flank.up=1000L,
   }
   var.name <- load(fn)
   anno <- get(var.name, inherits=FALSE)
-  class(anno) <- 'AnnotatedChromosome'
-  anno
+  as(anno, 'AnnotatedChromosome')
 }
 
 ##' The crank that turns the annotateChromosome function over the chromosomes
@@ -234,8 +236,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   annotated <- c(annotated, intergenic)
   annotated <- annotated[order(ranges(annotated))]
 
-  class(annotated) <- 'AnnotatedChromosome'
-  annotated
+  as(annotated, 'AnnotatedChromosome')
 }
 
 ##' Returns the exclusive portion of the ranges in .ranges as $exclusive.
