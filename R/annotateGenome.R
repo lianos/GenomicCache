@@ -236,6 +236,10 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   annotated <- c(annotated, intergenic)
   annotated <- annotated[order(ranges(annotated))]
 
+  if (length(findOverlaps(annotated, ignoreSelf=TRUE, type='any')) > 0) {
+    warning("Annotation for chromosome", seqname, "is not clean", sep=" ")
+  }
+  
   as(annotated, 'AnnotatedChromosome')
 }
 
@@ -296,11 +300,6 @@ buildIntronAnnotation <- function(annotated, stranded=TRUE) {
   introns
 }
 
-.fstart.val <- function(direction, strand) {
-  ((direction == 'up') && (strand %in% c('+', '*'))) ||
-  ((direction == 'down' && (strand == '-')))
-}
-
 buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   direction <- match.arg(direction, c('up', 'down'))
   resize.fix <- if (direction == 'up') 'start' else 'end'
@@ -334,18 +333,18 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
 }
 
 trimRangesToSeqlength <- function(granges, seqlength=NA) {
+  too.low <- start(granges) < 1
+  if (any(too.low)) {
+    granges[too.low] <- 1L
+  }
+  
   if (!is.na(seqlength)) {
-    too.low <- start(granges) < 1
-    if (any(too.low)) {
-      granges[too.low] <- 1L
-    }
-    if (!is.na(seqlength)) {
-      too.high <- end(granges) > seqlength
-      if (any(too.high)) {
-        end(granges) <- seqlength
-      }
+    too.high <- end(granges) > seqlength
+    if (any(too.high)) {
+      end(granges[too.high]) <- seqlength
     }
   }
+  
   granges
 }
 
