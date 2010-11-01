@@ -2,13 +2,20 @@ setOldClass(c("data.table", "data.frame"))
 
 setAs("GRanges", "data.table", function(from) {
   if (length(from) == 0L) {
-    return(data.table)
+    return(data.table())
   }
   data.table(as.data.frame(from))
 })
 
+setAs("IRanges", "data.table", function(from) {
+  if (length(from) == 0L) {
+    return(data.table())
+  }
+  data.table(cbind(as.data.frame(from), as.data.frame(values(from))))
+})
+
 setAs("data.table", "GRanges", function(from) {
-  if (nrow(from) == 0L) {
+  if (nrow(from) == 0L || all(is.na(from))) {
     return(GRanges())
   }
   if (!all(c('seqnames', 'start', 'end') %in% colnames(from))) {
@@ -26,8 +33,8 @@ setAs("data.table", "GRanges", function(from) {
 })
 
 setAs("data.table", "IRanges", function(from) {
-  if (nrow(from) == 0L) {
-    return(GRanges())
+  if (nrow(from) == 0L || all(is.na(from))) {  
+    return(IRanges())
   }
   if (!all(c('start', 'end') %in% colnames(from))) {
     stop("seqnames, start, end required")

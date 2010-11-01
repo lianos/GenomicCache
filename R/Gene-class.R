@@ -30,6 +30,10 @@ function(.Object, ...,
 })
 
 .guessGeneIdType <- function(id, anno.source) {
+  if (!is.na(suppressWarnings(as.integer(id)))) {
+    return("entrez")
+  }
+  
   if (anno.source == 'refGene') {
     ## refseq
     id.type <- switch(substring(id, 1, 3), NM_='tx.id', NR_='tx.id', "symbol")
@@ -93,6 +97,8 @@ GFGene <- function(..., .gc=NULL) {
   if (id.type == 'symbol') {
     symbol <- id
     entrez.id <- getEntrezIdFromSymbol(.gc, id, anno.source)
+  } else if (id.type == 'entrez') {
+    entrez.id <- id
   } else {
     if (class.name == 'EnsemblGene') {
       if (id.type == 'id') {
@@ -195,9 +201,8 @@ function(object) {
   xcripts <- transcripts(object)
   meta <- values(xcripts)
   
-  cat(sprintf("%s[%s], %s %d transcripts\n",
-              symbol(object), asource,
-              paste(chromosome(object), collapse=","),
+  cat(sprintf("%s|%s [%s]: %d transcripts\n",
+              symbol(object), entrezId(object), asource,
               length(xcripts)))
   for (idx in 1:length(xcripts)) {
     xcript <- xcripts[[idx]]

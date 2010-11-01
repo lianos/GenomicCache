@@ -318,7 +318,8 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
     ## There will be duplicate matches here due to txbounds that overlap
     ## with eachother (think genes inside of other genes). Keep only flanks
     ## that overlap with one annotated tx bound, the others are tossed.
-    keep <- tabulate(mm[, 1]) == 1L
+    ## keep <- tabulate(mm[, 1]) == 1L
+    keep <- !(duplicated(mm[, 1]) | duplicated(mm[, 1], fromLast=TRUE))
     mm <- mm[keep, , drop=FALSE]
     new.flanks <- unique.flanks[mm[, 1]]
     new.flanks <- resize(new.flanks, width=width(new.flanks)-1, fix=resize.fix)
@@ -352,13 +353,13 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=N
   ## Calculate inferredmax-bounds by symbol
   dt <- as(annotated, 'data.table')
   key(dt) <- 'entrez.id'
-  axe.col <- which(colnames(dt) == 'entrez.id')
+  axe.col <- which(colnames(dt) %in% c('entrez.id'))
+  
   bounds <- dt[, {
     .sd <- .SD[1]
     .sd$start <- min(start)
     .sd$end <- max(end)
-    .sd <- .sd[, -axe.col, with=FALSE]
-    .sd
+    .sd[, -axe.col, with=FALSE]
   }, by='entrez.id']
   bounds <- bounds[!is.na(bounds$entrez.id),]
 

@@ -1,32 +1,94 @@
 setClassUnion("MaybeTranscriptDb", c('TranscriptDb', 'NULL'))
-setClass("GenomicFeaturesX", 
-         representation(.genome='character',
-                        .cache='environment'),
-         contains="VIRTUAL")
 
+##' A virtual class for annotation objects/tracks to extend
+##'
+##' @exportClass GenomicFeaturesX
+##' 
+##' @slot .genome The genome abbreviation (hg18, etc.) this
+##' \code{GenomicFeatureX} is annotted against.
+##' @slot .cache An \code{environment} to hold calculated objects for quick
+##' retrieval.
+setClass("GenomicFeaturesX",
+         contains=c("VIRTUAL"),
+         representation=representation(
+           .genome='character',
+           .cache='environment'),
+         prototype=prototype(
+           .genome=character(),
+           .cache=new.env()))
+
+##' The universal/super object that contains all annotations for a given genome.
+##' This will minimally have a \code{\link{TranscriptDb}} object.
+##'
+##' @exportClass GenomicCache
+##' 
+##' @slot .path The absolute path the parent directory of the container
+##' @slot .txdb The \code{link{TranscriptDb}} object for the genome.
 setClass("GenomicCache",
-         representation(.path='character',
-                        .txdb='MaybeTranscriptDb'),
-         contains="GenomicFeaturesX")
+         contains=c("GenomicFeaturesX"),
+         representation=representation(
+           .path='character',
+           .txdb='MaybeTranscriptDb'),
+         prototype=prototype(
+           .path=character(),
+           .txdb=NULL))
 
+##' The base class for a gene which stores transcript, cds, utr3/5, transcript
+##' bounds, etc.
+##'
+##' @exportClass GFGene
+##' 
+##' @slot .id The gene id (primary key) in the \code{\link{TranscriptDb}}
+##' @slot .entrez.id The entrez id for the gene
+##' @slot .symbol The hgnc gene symbol
+##' @slot .chromosome The chromosome(s) the transcripts of the gene are
+##' annotated to
+##' @slot .strand The strand(s) the transcripts are annotated to.
+##' @slot .exons A \code{\link{GRangesList}} containing as many items as there
+##' are annotated transcripts. Each item defines the exon structure of the
+##' transcript.
+##' @slot .cds A \code{\link{GRangesList}} containing the cds exons for each
+##' transcript.
+##' @slot .utr5 A \code{\link{GRangesList}} containing the 5' UTRs for each
+##' transcript
+##' @slot .utr3 A \code{\link{GRangesList}} containgin the 3' UTRs for each
+##' transcript.
 setClass("GFGene",
-         representation(.id='character',
-                        .entrez.id='character',
-                        .symbol='character',
-                        .chromosome='factor',
-                        .strand='factor',
-                        .exons="GRangesList",
-                        .cds="GRangesList",
-                        .utr5="GRangesList",
-                        .utr3="GRangesList"),
-         contains="GenomicFeaturesX")
+         contains=c("GenomicFeaturesX"),
+         representation=representation(
+           .id='character',
+           .entrez.id='character',
+           .symbol='character',
+           .chromosome='factor',
+           .strand='factor',
+           .exons="GRangesList",
+           .cds="GRangesList",
+           .utr5="GRangesList",
+           .utr3="GRangesList"),
+         prototype=prototype(
+           .id=character(),
+           .entrez.id=character(),
+           .symbol=character(),
+           .chromosome=factor(),
+           .strand=strand(),
+           .cds=GRangesList(),
+           .utr5=GRangesList(),
+           .utr3=GRangesList()))
 
-setClass("RefSeqGene", contains="GFGene")
-setClass("EnsemblGene", contains="GFGene")
-setClass("AceviewGene", contains="GFGene")
-setClass("UcscGene", contains="GFGene")
+##' @exportClass RefSeqGene
+setClass("RefSeqGene", contains=c("GFGene"))
 
-setClass('AnnotatedChromosome', contains="GRanges")
+##' @exportClass EnsemblGene
+setClass("EnsemblGene", contains=c("GFGene"))
+
+##' @exportClass AceviewGene
+setClass("AceviewGene", contains=c("GFGene"))
+
+##' @exportClass UcscGene
+setClass("UcscGene", contains=c("GFGene"))
+
+##' @exportClass AnnotatedChromosome
+setClass('AnnotatedChromosome', contains=c("GRanges"))
 
 ################################################################################
 ## Methods : Generic (work on all GenomicFeaturesX-type objects)
