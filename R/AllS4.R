@@ -157,14 +157,49 @@ setGeneric("chromosomes", function(x, ...) {
   standardGeneric("chromosomes")
 })
 
+setGeneric("getGenesOnChromosome",
+function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
+         overlap.type=c('any', 'start', 'end', 'within', 'equal'),
+         use.cache=TRUE, ...) {
+  standardGeneric("getGenesOnChromosome")
+})
+
 
 ################################################################################
 ## Methods: GenomicCache
 setGeneric("cacheDir", function(x, ...) standardGeneric("cacheDir"))
 setGeneric("txdb", function(x, ...) standardGeneric("txdb"))
+setGeneric("fiveUTRsBy",
+function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
+  standardGeneric("fiveUTRsBy")
+})
+setGeneric("threeUTRsBy",
+function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
+  standardGeneric("threeUTRsBy")
+})
 
 ################################################################################
 ## Methods: (G)GappedRanges
 setGeneric("gwidth", function(x, ...) standardGeneric("gwidth"))
 
-## setGeneric("txdbConn", function(txdb) standardGeneric('txdbConn'))
+################################################################################
+## Uniqueness
+
+setGeneric("getUniquenessMap",
+function(x, chromosome, k, ...) {
+  standardGeneric("getUniquenessMap")
+})
+
+##' ##' Returns a logical vector that is the same length as ranges indicating
+##' whether that range is uniquelly mappable in the given genome
+##'
+##' @param ranges Either a \code{GRanges} object from which the chromosome(s)
+##' are inferred, or an \code{IRanges} object
+##' or an IRanges object,hg18, mm9, etc.
+##' @param genome hg18, mm9, etc.
+##' @param chromosome the name of the chromosome these ranges belong
+setGeneric("flagUniqueRanges",
+function(ranges, genome, chromosome=NULL, ...) {
+  standardGeneric("flagUniqueRanges")
+})
+

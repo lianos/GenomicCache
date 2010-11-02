@@ -137,11 +137,6 @@ function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
   cacheFetch(x, var, cdsBy(x@.txdb, by, use.names=use.names))
 })
 
-setGeneric("fiveUTRsBy",
-function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
-  standardGeneric("fiveUTRsBy")
-})
-
 setMethod("fiveUTRsBy", c(x="GenomicCache"),
 function(x, by, use.names, flank.up=1000, flank.down=100, ...) {
   by <- match.arg(by)
@@ -170,11 +165,6 @@ function(x, use.names=FALSE, ...) {
   cacheFetch(x, var, fiveUTRsByTranscript(x@.txdb, use.names=use.names))
 })
 
-
-setGeneric("threeUTRsBy",
-function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
-  standardGeneric("threeUTRsBy")
-})
 
 setMethod("threeUTRsBy", c(x="GenomicCache"),
 function(x, by, use.names, flank.up=100, flank.down=1000, ...) {

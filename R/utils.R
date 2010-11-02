@@ -60,47 +60,15 @@ getAnnoPackageName <- function(from, package=NULL) {
   }
 }
 
-##' Takes a character vector and tacks on a .1, .2, etc. to any duplicate
-##' names until they are all made unique
-##'
-##' uniquefy(c('A', 'B', 'C', 'D', 'A', 'A', 'B', 'C', 'C')) will return:
-##'     "A"   "B"   "C"   "D"   "A.1" "A.2" "B.1" "C.1" "C.2"
-uniquefy <- function(values) {
-  return(make.unique(values))
-  ## dups <- duplicated(values)
-  ## if (any(dups)) {
-  ##   values[dups] <- paste(values[dups], '1', sep='.')
-  ## }
-  ## dups <- duplicated(values)
-  ## while (any(dups)) {
-  ##   count <- regexpr("\\.(\\d+)$", values[dups], perl=TRUE)
-  ##   repl <- substring(values[dups], count + 1,
-  ##                     count + attr(count, 'match.length'))
-  ##   repl <- as.integer(repl) + 1
-  ##   values[dups] <- paste(substring(values[dups], 1, count -1),
-  ##                         repl, sep=".")
-  ##   dups <- duplicated(values)
-  ## }
-  ## values
-}
-
 dir.exists <- function(path) {
   path <- as.character(path)
-  if (is.na(file.info(path)$isdir) || !file.info(path)$isdir) {
-    FALSE
-  } else {
-    TRUE
-  }
+  info <- file.info(path)
+  !is.na(info$isdir) && info$isdir
 }
 
 assert.dir.exists <- function(path) {
   if (!dir.exists(path)) stop("Can't access directory: ", path)
 }
-
-
-## setAs("GRanges", "IntervalTree", function(from) {
-##   as(ranges(from), "IntervalTree")
-## })
 
 ##' Returns an object of type \code{type} from a list, this is most useful
 ##' when \code{the.list} has one object of \code{type} in it.

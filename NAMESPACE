@@ -5,59 +5,94 @@ import(GenomicFeatures)
 importFrom(AnnotationDbi, mget)
 
 importFrom(annotate,
-  getAnnMap,
-  dataSource
+           getAnnMap,
+           dataSource
 )
 
-exportClasses(
-  GenomicCache,
-  GFGene,
-  RefSeqGene,
-  EnsemblGene,
-  AceviewGene
+import(foreach)
+
+exportClasses(GenomicCache,
+              GFGene,
+              RefSeqGene,
+              EnsemblGene,
+              AceviewGene,
+              UcscGene,
+              AnnotatedChromosome
 )
 
-exportMethods(
-  duplicate,
-  annotationPackage,
-  annotationSource,
-  genome,
-  clearCache,
-  dispose,
-  chromosome,
-  chromosomes,
-  dataSource,  
-  txBounds,
-  cdsBounds,
-  utr5,
-  utr3,
-  getBsGenome,
-  isProteinCoding,
-  id,
-  symbol,
-  chromosome,
-  entrezId,
-  idealized,
-  
-  getEntrezIdFromSymbol,
-  getEntrezIdFromTranscriptId,
-  getEntrezIdFromGeneId,
-  getTranscriptIdFromEntrezId,
-  getSymbolFromEntrezId,
-  getGeneIdFromEntrezId,
-  
-  getGenesOnChromosome,
-  threeUTRsBy,
-  fiveUTRsBy,
-  
-  flagUniqueRanges,
-  getUniquenessMap
+exportMethods(duplicate,
+              annotationPackage,
+              annotationSource,
+              genome,
+              cacheFetch,
+              clearCache,
+              dispose,
+              getBsGenome,
+              chromosomes,
+              
+              ## GFGene specific
+              chromosome,
+              txBounds,
+              txNames,
+              cdsBounds,
+              utr5,
+              utr3,
+              isProteinCoding,
+              id,
+              symbol,
+              chromosome,
+              entrezId,
+              idealized,
+
+              ## GenomicCache
+              cacheDir,
+              txdb,
+              getGenesOnChromosome,
+              fiveUTRsBy,
+              threeUTRsBy,
+              
+              ## GappedRanges
+              gwidth,
+              
+              ## Gene symbol conversions
+              getEntrezIdFromSymbol,
+              getEntrezIdFromTranscriptId,
+              getEntrezIdFromGeneId,
+              getTranscriptIdFromEntrezId,
+              getSymbolFromEntrezId,
+              getGeneIdFromEntrezId,
+              getGenesOnChromosome,
+              threeUTRsBy,
+              fiveUTRsBy,
+
+              ## uniqueness
+              flagUniqueRanges,
+              getUniquenessMap
 )
 
 export(
-  GFGene,
-  GenomicCache,
-  generateGFXGeneModels,
-  id2symbol,
-  getAnnoPackageName
+       ## annotateGenome
+       getAnnotatedChromosome,
+       generateAnnotatedChromosomesByGenes,
+       annotateChromosome,
+       annotatedTxBounds,
+
+       ## GappedRAnges
+       GappedRanges
+
+       ## GFGene
+       GFGene,
+
+       ## GenomicCache
+       GenomicCache,
+       generateGFXGeneModels,
+       id2symbol,
+       getAnnoPackageName,
+
+       ## utilities
+       na.logical,
+       load.it,
+       getAnnoPackageName
+       dir.exists
+       
 )

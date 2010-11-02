@@ -1,15 +1,15 @@
 Package: GenomicFeaturesX
 Title: Support package for GenomicFeatures
-Version: 0.1
+Version: 0.2
 Author: Steve Lianoglou,
 License: Artistic-2.0
 Description: Code to extend the core GenomicFeatures package, mainly to
              make working with txdb's easier (for me).
 Maintainer: Steve Lianoglou <slianoglou@gmail.com>
-Depends: GenomicFeatures (>= 1.1.11)
+Depends: GenomicFeatures (>= 1.1.11), GenomicRanges (>= 1.2.1), data.table (>= 1.5)
 Imports: methods, DBI (>= 0.2-5), RSQLite (>= 0.8-1), IRanges, GenomicRanges,
          Biostrings (>= 2.17.6), rtracklayer (>= 1.7.11), biomaRt, RCurl,
-         AnnotationDbi, annotate, utils
+         AnnotationDbi, annotate, utils, plyr, ggplot2, foreach
 Suggests: testthat (>= 0.3),
           org.Hs.eg.db,
           BSgenome,

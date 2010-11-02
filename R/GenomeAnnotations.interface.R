@@ -56,20 +56,12 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL,
     }, .progress='text')
 
     genes <- genes[!sapply(genes, is.null)]
-    names(genes) <- uniquefy(sapply(genes, symbol))
+    names(genes) <- make.unique(sapply(genes, symbol))
     save(genes, file=file.path(cache.dir, .geneCacheFileName(gcache, chr)))
     chr
   }
   
 }
-
-setGeneric("getGenesOnChromosome",
-function(x, chromosome, start=NULL, end=NULL, maxgap=0L, minoverlap=1L,
-         overlap.type=c('any', 'start', 'end', 'within', 'equal'),
-         use.cache=TRUE, ...) {
-  standardGeneric("getGenesOnChromosome")
-})
-
 
 ## NOTE: genesOnChromosome is not done
 setMethod("getGenesOnChromosome", c(x="GenomicCache"),

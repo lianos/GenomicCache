@@ -6,21 +6,6 @@ withinUniquenessBounds <- function(k) {
   .GFX$uniqueness$min.length <= k && k <= .GFX$uniqueness$max.length
 }
 
-
-##' Returns a logical vector that is the same length as ranges indicating
-##' whether that range is uniquelly mappable in the given genome
-##'
-##' @param ranges Either a \code{GRanges} object from which the chromosome(s)
-##' are inferred, or an \code{IRanges} object
-##' or an IRanges object,hg18, mm9, etc.
-##' @param genome hg18, mm9, etc.
-##' @param chromosome the name of the chromosome these ranges belong
-setGeneric("flagUniqueRanges",
-function(ranges, genome, chromosome=NULL, ...) {
-  standardGeneric("flagUniqueRanges")
-})
-
-
 ## you can pass in a uniqueness.map to use one that's already been loaded.
 ## if this is done and use.universal is TRUE, we assume it is the universall/all
 ## map, otherwise we assume that the map is for the same width that the ranges
@@ -119,10 +104,6 @@ function(ranges, genome, chromosome, use.universal=FALSE, ...) {
   file.path(cache.dir, name)
 }
 
-setGeneric("getUniquenessMap",
-function(x, chromosome, k, ...) {
-  standardGeneric("getUniquenessMap")
-})
 
 ## x : genome
 setMethod("getUniquenessMap", c(x="character"),
@@ -140,22 +121,6 @@ setMethod("getUniquenessMap", c(x="GenomicCache"),
 function(x, chromosome, k, ...) {
   getUniquenessMap(genome(x), chromosome, k, allow.universal, ...)
 })
-
-## setGeneric("haveUniquenessMap",
-## function(x, chromosome, k, ...) {
-##   standardGeneric("haveUniquenessMap")
-## })
-##
-## setMethod("haveUniquenessMap", c(x="character"),
-## function(x, chromosome, k, ...) {
-##   file.name <- .uniquenessMapFilePath(x, chromosome, k, ...)
-##   file.exists(file.name)
-## })
-##
-## setMethod("haveUniquenessMap", c(x="GenomicCache"),
-## function(x, chromosome, k, ...) {
-##   haveUniquenessMap(genome(x), chromosome, k, ...)
-## })
 
 ###############################################################################
 # Functions to convert Anshul's uniqueness maps to Rle objects
