@@ -68,6 +68,12 @@ id2symbol <- function(x, ids=NULL) {
   data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
 }
 
+setMethod("dispose", c(x="GenomicCache"),
+function(x, ...) {
+  clearCache(x)
+  sqliteCloseConnection(GenomicFeatures:::txdbConn(txdb(x)))
+})
+
 setMethod("seqnames", c(x="GenomicCache"),
 function(x) {
   seqnames(x@.txdb)
