@@ -53,20 +53,25 @@ generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
            chrs=NULL, do.save=TRUE, ...) {
+  verbose <- checkVerbose(...)
   bsg <- getBsGenome(gcache)
+  bsg.seqlengths <- seqlengths(bsg)
   if (is.null(chrs)) {
     chrs <- chromosomes(gcache)
   }
   
-  illegal.chr <- !chrs %in% names(seqlengths(bsg))
+  illegal.chr <- !chrs %in% names(bsg.seqlengths)
   if (any(illegal.chr)) {
     stop("Bad chromosome names: ", paste(chrs[illegal.chr], collapse=","))
   }
 
-  annos <- lapply(chrs, function(chr) {
+  ## annos <- lapply(chrs, function(chr) {
+  annos <- foreach(chr=chrs, .packages=c("GenomicFeaturesX"),
+                   .inorder=FALSE, .verbose=verbose) %dopar% {
     cat(chr, "...\n")
-    chr.length <- seqlengths(bsg)[chr]
-    genes <- getGenesOnChromosome(gcache, chr)
+    chr.length <- bsg.seqlengths[chr]
+    .gc <- duplicate(gcache, pre.load=NULL)
+    genes <- getGenesOnChromosome(.gc, chr)
     entrez.id <- sapply(genes, entrezId)
     
     cat("... cleaning gene models ...\n")
@@ -86,7 +91,7 @@ generateAnnotatedChromosomesByGenes <-
     keep <- !sapply(models, is.null)
     models <- models[keep]
     entrez.id <- entrez.id[keep]
-
+    
     if (length(models) > 0) {
       cat("... annotating chromosome ...")
       st <- proc.time()['elapsed']
@@ -96,16 +101,19 @@ generateAnnotatedChromosomesByGenes <-
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
-        fn <- .annotatedChromosomeFileName(gcache, chr, flank.up, flank.down,
+        fn <- .annotatedChromosomeFileName(.gc, chr, flank.up, flank.down,
                                            stranded)
+        cat("... Saving to", fn, "\n")
         save(chr.anno, file=fn)
       }
     } else {
       cat("No genes found ... skipping\n")
       chr.anno <- NULL
     }
+    
+    dispose(.gc)
     chr.anno
-  })
+  }
 
   annos
 }
@@ -142,7 +150,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   if (is.null(seqname)) {
     seqname <- as.character(seqnames(gene.list[[1]][1]))
   }
-  if (is.null(seqlength)) {
+  if (is.null(seqlength) || is.na(seqlength)) {
       names(seqlength) <- seqname
   }
   
@@ -350,18 +358,18 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
 
 annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=NA) {
   ## Calculate inferredmax-bounds by symbol
-  dt <- as(annotated, 'data.table')
+  dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
   key(dt) <- 'entrez.id'
-  axe.col <- which(colnames(dt) %in% c('entrez.id'))
+  axe <- which(colnames(dt) == 'entrez.id')
   
-  bounds <- dt[, {
+  bounds <- dt[, by='entrez.id', {
     .sd <- .SD[1]
     .sd$start <- min(start)
     .sd$end <- max(end)
-    .sd[, -axe.col, with=FALSE]
-  }, by='entrez.id']
-  bounds <- bounds[!is.na(bounds$entrez.id),]
-
+    .sd$exon.anno <- 'flank'
+    .sd[, -axe, with=FALSE]
+  }]
+  
   bounds <- as(bounds, 'GRanges')
   if (flank.up > 0) {
     bounds <- resize(bounds, width=width(bounds) + flank.up, fix='end')
@@ -373,10 +381,11 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=N
     bounds <- bounds[order(ranges(bounds))]
   }
 
+  old.meta <- values(annotated)
   new.meta <- resortColumns(values(bounds), values(annotated))
-  meta <- values(annotated)
-  for (col in colnames(meta)) {
-    if (is.character(meta[[col]])) {
+  
+  for (col in colnames(old.meta)) {
+    if (is.character(old.meta[[col]])) {
       new.meta[[col]] <- as.character(new.meta[[col]])
     }
   }
@@ -391,9 +400,10 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=N
 
 resortColumns <- function(from, to) {
   common.names <- intersect(colnames(from), colnames(to))
-  if (length(common.names) != length(colnames(from))) {
+  if (length(common.names) != length(colnames(to))) {
     stop("Need matching column names")
   }
+  
   xref <- match(colnames(to), colnames(from))
   from[, xref]
 }

@@ -68,6 +68,13 @@ id2symbol <- function(x, ids=NULL) {
   data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
 }
 
+## Makes a copy of the GenomicCache ensuring that it has a separate connection to the
+## transcript database.
+setMethod("duplicate", c(x="GenomicCache"),
+function(x, pre.load=c('transcripts', 'exons'), ...) {
+  GenomicCache(x@.path, pre.load=pre.load)
+})
+
 setMethod("dispose", c(x="GenomicCache"),
 function(x, ...) {
   clearCache(x)

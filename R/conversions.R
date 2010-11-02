@@ -1,4 +1,5 @@
-setOldClass(c("data.table", "data.frame"))
+## setOldClass(c("data.table", "data.frame"))
+setOldClass(c('data.table', 'data.frame'))
 
 setAs("GRanges", "data.table", function(from) {
   if (length(from) == 0L) {

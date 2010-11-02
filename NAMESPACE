@@ -1,6 +1,7 @@
 import(IRanges)
 import(GenomicRanges)
 import(GenomicFeatures)
+import(data.table)
 
 importFrom(AnnotationDbi, mget)
 
@@ -78,7 +79,7 @@ export(
        annotatedTxBounds,
 
        ## GappedRAnges
-       GappedRanges
+       GappedRanges,
 
        ## GFGene
        GFGene,
@@ -92,7 +93,7 @@ export(
        ## utilities
        na.logical,
        load.it,
-       getAnnoPackageName
+       getAnnoPackageName,
        dir.exists
        
 )
