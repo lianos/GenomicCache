@@ -308,12 +308,13 @@ function(x, ...) {
   x@.symbol
 })
 
-setMethod("chromosome", c(x="GFGene"), 
-function(x, as.DNAString=FALSE, unmasked=TRUE, ...) {
-  chr <- as.character(x@.chromosome)
+## This is defined in ShortRead
+setMethod("chromosome", c(object="GFGene"), 
+function(object, as.DNAString=FALSE, unmasked=TRUE, ...) {
+  chr <- as.character(object@.chromosome)
   if (as.DNAString) {
     stop("Manually retreive the chromosome from a BSgenome object")
-    ## genome <- getBsGenome(x)
+    ## genome <- getBsGenome(object)
     ## chr <- genome[[chr]]
     ## if (unmasked) {
     ##   chr <- unmasked(chr)

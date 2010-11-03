@@ -3,14 +3,17 @@ import(GenomicRanges)
 import(GenomicFeatures)
 import(data.table)
 
+importFrom(RSQLite, sqliteCloseConnection)
+importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
+importFrom(ShortRead, chromosome)
 
 importFrom(annotate,
            getAnnMap,
            dataSource
 )
 
-import(foreach)
+
 
 exportClasses(GenomicCache,
               GFGene,

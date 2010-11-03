@@ -65,7 +65,6 @@ generateAnnotatedChromosomesByGenes <-
     stop("Bad chromosome names: ", paste(chrs[illegal.chr], collapse=","))
   }
 
-  ## annos <- lapply(chrs, function(chr) {
   annos <- foreach(chr=chrs, .packages=c("GenomicFeaturesX"),
                    .inorder=FALSE, .verbose=verbose) %dopar% {
     cat(chr, "...\n")
