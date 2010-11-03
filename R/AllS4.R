@@ -138,7 +138,10 @@ setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 ## Methods: Gene
 setGeneric("entrezId", function(x, ...) standardGeneric("entrezId"))
 setGeneric("cdsBounds", function(x, ...) standardGeneric("cdsBounds"))
-setGeneric("chromosome", function(x, ...) standardGeneric("chromosome"))
+
+## Imported from AlignedRead
+## setGeneric("chromosome", function(x, ...) standardGeneric("chromosome"))
+
 setGeneric("id", function(x, ...) standardGeneric("id"))
 setGeneric("symbol", function(x, ...) standardGeneric("symbol"))
 setGeneric("txBounds", function(x, ...) standardGeneric("txBounds"))
