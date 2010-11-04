@@ -68,10 +68,12 @@ id2symbol <- function(x, ids=NULL) {
   data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
 }
 
-## Makes a copy of the GenomicCache ensuring that it has a separate connection to the
-## transcript database.
+## Makes a copy of the GenomicCache ensuring that it has a separate connection
+## to the transcript database. \code{pre.load} is set to \code{NULL} because we
+## often don't want to waste time loading things since this is likely called
+## when running within
 setMethod("duplicate", c(x="GenomicCache"),
-function(x, pre.load=c('transcripts', 'exons'), ...) {
+function(x, pre.load=NULL, ...) {
   GenomicCache(x@.path, pre.load=pre.load)
 })
 

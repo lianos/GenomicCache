@@ -70,6 +70,8 @@ generateAnnotatedChromosomesByGenes <-
     cat(chr, "...\n")
     chr.length <- bsg.seqlengths[chr]
     .gc <- duplicate(gcache, pre.load=NULL)
+    on.exit(dispose(.gc))
+    
     genes <- getGenesOnChromosome(.gc, chr)
     entrez.id <- sapply(genes, entrezId)
     
@@ -110,7 +112,6 @@ generateAnnotatedChromosomesByGenes <-
       chr.anno <- NULL
     }
     
-    dispose(.gc)
     chr.anno
   }
 

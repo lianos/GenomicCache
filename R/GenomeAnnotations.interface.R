@@ -23,23 +23,33 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL,
                                   flank.down=c(0, 500, 1000)) {
   if (!require(plyr)) stop("Plyr is used here")
   cache.dir <- cacheDir(gcache, 'gene.models')
+  if (!dir.exists(cache.dir)) {
+    cat("Making cache directory:", cache.dir, "\n")
+    if (!dir.create(cache.dir)) {
+      stop("Error creating directory")
+    }
+  }
   
   if (is.null(chromosomes)) {
     chromosomes <- seqnames(gcache)
   }
 
   xcripts <- transcripts(gcache)
-  
-  for (chr in chromosomes) {
-    cat(chr, "...\n")
+
+  foreach(chr=chromosomes, .packages="GenomicFeaturesX", .inorder=FALSE) %dopar% {
+    cat("===", chr, "===...\n")
+    .gc <- duplicate(gcache)
+    on.exit(dispose(.gc))
+
     chr.xcripts <- xcripts[which(seqnames(xcripts) == chr)]
     .so.far <- character(length(chr.xcripts))
     .idx <- 1L
+    
     genes <- llply(values(chr.xcripts)$tx_name, function(tx) {
       if (tx %in% .so.far) {
         return(NULL)
       }
-      g <- tryCatch(GFGene(tx.id=tx, gcache), error=function(e) NULL)
+      g <- tryCatch(GFGene(tx.id=tx, .gc), error=function(e) NULL)
       if (!is.null(g)) {
         ## cat(chr, symbol(g), "\n")
         xcripts <- transcripts(g, which.chr=chr)
@@ -53,11 +63,11 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL,
         }
       }
       g
-    }, .progress='text')
+    }, .progress='none')
 
     genes <- genes[!sapply(genes, is.null)]
     names(genes) <- make.unique(sapply(genes, symbol))
-    save(genes, file=file.path(cache.dir, .geneCacheFileName(gcache, chr)))
+    save(genes, file=file.path(cache.dir, .geneCacheFileName(.gc, chr)))
     chr
   }
   
