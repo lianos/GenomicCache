@@ -14,6 +14,26 @@
 ###############################################################################
 ## getEntrezIdFromSymbol
 ###############################################################################
+
+##' Fetch the entrez id given a gene symbol from a given genome.
+##'
+##' @importFrom annotate getAnnMap
+##' @exportMethod getEntrezIdFromSymbol
+##' @rdname getEntrezIdFromSymbol-methods
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##'
+##' @param x A character vector specifying the genome (ie. "hg18"), a
+##' \code{linkS4class{TranscriptDb}} object, or a
+##' \code{\linkS4class{GenomicCache}} that the genome information can be
+##' extracted from.
+##' @param id A character vector of symbols to get the id from
+##' @param anno.source Explicitly specify \code{refGene}, etc.
+##' @param rm.unknown If \code{TRUE} symbols with unknown entrez id's are
+##' removed, otherwise \code{NA} kept for them
+##'
+##' @return If only one \code{id} is given, then a character vector with the
+##' entrez id(s) is returned, otherwise a named list is returned with the
+##' entrez id(s) as elements, and the symbol(s) as names
 setGeneric("getEntrezIdFromSymbol",
 function(x, id, anno.source=NULL, rm.unknown=TRUE) {
   standardGeneric("getEntrezIdFromSymbol")
