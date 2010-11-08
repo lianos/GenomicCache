@@ -29,6 +29,7 @@ function(.Object, ...,
                  ...)
 })
 
+##' @nord
 .guessGeneIdType <- function(id, anno.source) {
   if (!is.na(suppressWarnings(as.integer(id)))) {
     return("entrez")
@@ -58,9 +59,23 @@ function(.Object, ...,
 }
 
 ##' Create a Gene object.
-##' This requires the use of a \code{\link{GenomicCache}} object \code{.gc},
-##' which is, for convenience, automatically "pulled out" from the argument list
-##' (\code{...}) if not explicitly passed.
+##' 
+##' This requires the use of a \code{\linkS4class{GenomicCache}} object
+##' passed into \code{.gc}, which is, for convenience, automatically "pulled
+##' out" from the argument list (\code{...}) if not explicitly passed.
+##'
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' 
+##' @param ... The symbol, entrez id, transcript id, or gene id of the Gene,
+##' optionally prefixed with what it is. For example,
+##' \code{GFGene(symbol="DICER1", gcr)} or \code{GFGene("DICER1", gcr)} both
+##' will work.
+##' @param .gc The \code{\linkS4class{GenomicCache}} object for the annotation
+##' source. The variable is fished out of \code{...} if it is not explicitly
+##' passed.
+##'
+##' @return A \code{\linkS4class{GFGene}} object
 GFGene <- function(..., .gc=NULL) {
   args <- list(...)
   arg.names <- names(args)
@@ -288,6 +303,7 @@ function(x, ...) {
   x@.entrez.id
 })
 
+##' @importFrom ShortRead id
 setMethod("id", c(object="GFGene"),
 function(object, ...) {
   object@.id
@@ -308,7 +324,7 @@ function(x, ...) {
   x@.symbol
 })
 
-## This is defined in ShortRead
+##' @importFrom ShortRead chromosome
 setMethod("chromosome", c(object="GFGene"), 
 function(object, as.DNAString=FALSE, unmasked=TRUE, ...) {
   chr <- as.character(object@.chromosome)
@@ -323,6 +339,7 @@ function(object, as.DNAString=FALSE, unmasked=TRUE, ...) {
   chr
 })
 
+@importFrom
 setMethod("strand", c(x="GFGene"),
 function(x) {
   x@.strand

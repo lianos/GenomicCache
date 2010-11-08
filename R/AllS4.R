@@ -87,7 +87,22 @@ setClass("AceviewGene", contains=c("GFGene"))
 ##' @exportClass UcscGene
 setClass("UcscGene", contains=c("GFGene"))
 
+##' A subclass of \code{\linkS4class{GRanges}} which stores the complete
+##' intervals spanning the length of a chromosome. Each range has a
+##' corresponding entry in the \code{values()} of the ranges with
+##' \code{exon.anno}, \code{symbol}, \code{entrez.id} columns providing the
+##' annotation for the interval.
+##'
+##' These classes are generated from the \code{\link{annotateChromosome}}
+##' function, and its driver function
+##' \code{\link{generateAnnotatedChromosomesByGenes}}. Different annotations
+##' are created given the \code{\linkS4class{GenomicCache}}, and the desired
+##' length of the flanking regions around the annotated transcription start/stop
+##' boundaries given.
+##' 
 ##' @exportClass AnnotatedChromosome
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' 
 setClass('AnnotatedChromosome', contains=c("GRanges"))
 
 ################################################################################

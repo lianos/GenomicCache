@@ -18,19 +18,41 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
 ##'
 ##' If the file has not been built, an error will be thrown prompting the
 ##' caller to genereate this file first.
-getAnnotatedChromosome <- function(gcache, seqname, flank.up=1000L,
+##'
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' 
+##' @param gcache \code{\linkS4class{GenomicCache}} object
+##' @param seqnames A character vector of seqnames/chromosomes to specifying
+##' which annotated chromosomes to get, or a \code{\linkS4class{GRanges}} object
+##' which the unique seqnames are pulled out of
+##' @param flank.up The flanking paremeters to specify which annotated chromosome
+##' to retrieve
+##' @param flank.down Same as \code{flank.up}
+##' @param stranded Logical indicating if the stranded annotated chromosome is
+##' desired
+##'
+##' @return An \code{\linkS4class{AnnotatedChromosome}} object
+getAnnotatedChromosome <- function(gcache, seqnames, flank.up=1000L,
                                    flank.down=1000L, stranded=TRUE) {
-  fn <- .annotatedChromosomeFileName(gcache, seqname, flank.up, flank.down,
-                                     stranded)
-  if (!file.exists(fn)) {
-    v <- sprintf('gcache, flank.up=%d, flank.down=%d, stranded=%s, chrs=%s)',
-                 flank.up, flank.down, stranded, seqname)
-    stop(basename(fn), " file not found. Generate it first via:\n",
-         sprintf('  annotateChromosomeByGenes(%s, ...)', v))
+  if (inherits(seqnames, 'GRanges')) {
+    seqnames <- as.character(seqnames(seqnames))
   }
-  var.name <- load(fn)
-  anno <- get(var.name, inherits=FALSE)
-  as(anno, 'AnnotatedChromosome')
+  seqnames <- unique(as.character(seqnames))
+  annotated <- lapply(seqnames, function(seqname) {
+    fn <- .annotatedChromosomeFileName(gcache, seqname, flank.up, flank.down,
+                                       stranded)
+    if (!file.exists(fn)) {
+      v <- sprintf('gcache, flank.up=%d, flank.down=%d, stranded=%s, chrs=%s)',
+                   flank.up, flank.down, stranded, seqname)
+      stop(basename(fn), " file not found. Generate it first via:\n",
+           sprintf('  annotateChromosomeByGenes(%s, ...)', v))
+    }
+    var.name <- load(fn)
+    anno <- get(var.name, inherits=FALSE)
+    as(anno, 'AnnotatedChromosome')
+  })
+  do.call(c, unname(annotated))
 }
 
 ##' The crank that turns the annotateChromosome function over the chromosomes

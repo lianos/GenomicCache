@@ -222,6 +222,7 @@ function(x, ...) {
   subset(metadata(x), name == "Genome")$value
 })
 
+##' @importFrom annotate dataSource
 setMethod("dataSource", c(object="GenomicCache"),
 function(object) {
   subset(metadata(object@.txdb), name == "Data source")$value

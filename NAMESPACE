@@ -13,8 +13,6 @@ importFrom(annotate,
            dataSource
 )
 
-
-
 exportClasses(GenomicCache,
               GFGene,
               RefSeqGene,
