@@ -68,6 +68,13 @@ id2symbol <- function(x, ids=NULL) {
   data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
 }
 
+setMethod("show", c(object="GenomicCache"),
+function(object) {
+  cat("GenomicCache object:\n")
+  cat("  Genome:", genome(object), "\n")
+  cat("  Annotation source:", annotationSource(object), "\n")
+})
+
 ## Makes a copy of the GenomicCache ensuring that it has a separate connection
 ## to the transcript database. \code{pre.load} is set to \code{NULL} because we
 ## often don't want to waste time loading things since this is likely called

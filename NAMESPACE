@@ -3,7 +3,7 @@ import(GenomicRanges)
 import(GenomicFeatures)
 import(data.table)
 
-importFrom(RSQLite, sqliteCloseConnection)
+importFrom(RSQLite, sqliteCloseConnection, dbGetPreparedQuery)
 importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
 importFrom(ShortRead, chromosome)

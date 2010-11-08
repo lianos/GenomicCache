@@ -24,7 +24,7 @@ function(x, organism=NULL, anno.source='UCSC', ...) {
     stop(lib.name, " package required.")
   }
   
-  get(organism)
+  get(organism, pos=paste('package', lib.name, sep=":"))
 })
 
 setMethod("getBsGenome", c(x="GenomicFeaturesX"),
