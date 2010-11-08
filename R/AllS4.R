@@ -139,10 +139,10 @@ setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 setGeneric("entrezId", function(x, ...) standardGeneric("entrezId"))
 setGeneric("cdsBounds", function(x, ...) standardGeneric("cdsBounds"))
 
-## Imported from AlignedRead
+## == Imported from ShortRead ==
 ## setGeneric("chromosome", function(x, ...) standardGeneric("chromosome"))
+## setGeneric("id", function(x, ...) standardGeneric("id"))
 
-setGeneric("id", function(x, ...) standardGeneric("id"))
 setGeneric("symbol", function(x, ...) standardGeneric("symbol"))
 setGeneric("txBounds", function(x, ...) standardGeneric("txBounds"))
 setGeneric("txNames", function(x, ...) {

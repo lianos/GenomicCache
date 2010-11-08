@@ -6,7 +6,7 @@ import(data.table)
 importFrom(RSQLite, sqliteCloseConnection, dbGetPreparedQuery)
 importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
-importFrom(ShortRead, chromosome)
+importFrom(ShortRead, id, chromosome)
 
 importFrom(annotate,
            getAnnMap,

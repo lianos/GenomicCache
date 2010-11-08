@@ -288,9 +288,9 @@ function(x, ...) {
   x@.entrez.id
 })
 
-setMethod("id", c(x="GFGene"),
-function(x, ...) {
-  x@.id
+setMethod("id", c(object="GFGene"),
+function(object, ...) {
+  object@.id
 })
 
 setMethod("isProteinCoding", c(x="GFGene"),
