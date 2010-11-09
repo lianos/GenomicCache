@@ -19,15 +19,16 @@
 ##'
 ##' @importFrom annotate getAnnMap
 ##' @exportMethod getEntrezIdFromSymbol
-##' @rdname getEntrezIdFromSymbol-methods
+##' @rdname gene-id-conversion-methods
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##'
+##' 
 ##' @param x A character vector specifying the genome (ie. "hg18"), a
 ##' \code{linkS4class{TranscriptDb}} object, or a
 ##' \code{\linkS4class{GenomicCache}} that the genome information can be
 ##' extracted from.
-##' @param id A character vector of symbols to get the id from
-##' @param anno.source Explicitly specify \code{refGene}, etc.
+##' @param id A character vector of symbols, transcript ids, entrez ids, etc.
+##' @param anno.source Explicitly specify \code{refGene}, etc. This value
+##' can be automatically extracted if \code{x} is a a 
 ##' @param rm.unknown If \code{TRUE} symbols with unknown entrez id's are
 ##' removed, otherwise \code{NA} kept for them
 ##'

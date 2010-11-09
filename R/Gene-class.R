@@ -32,10 +32,8 @@ function(.Object, ...,
 ##' @nord
 .guessGeneIdType <- function(id, anno.source) {
   if (!is.na(suppressWarnings(as.integer(id)))) {
-    return("entrez")
-  }
-  
-  if (anno.source == 'refGene') {
+    id.type <- "entrez"
+  } else if (anno.source == 'refGene') {
     ## refseq
     id.type <- switch(substring(id, 1, 3), NM_='tx.id', NR_='tx.id', "symbol")
   } else if (anno.source == 'ensGene') {
@@ -339,7 +337,7 @@ function(object, as.DNAString=FALSE, unmasked=TRUE, ...) {
   chr
 })
 
-@importFrom
+##' @importFrom GenomicRanges strand
 setMethod("strand", c(x="GFGene"),
 function(x) {
   x@.strand
