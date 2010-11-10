@@ -1,11 +1,12 @@
-matchGFGeneCollapse <- function(x, collapse) {
+matchGFGeneCollapse <- function(collapse, gene=NULL) {
+  choices <- c('cover', 'constitutive', 'first', 'longest', 'shortest')
   if (is.numeric(collapse)) {
     collapse <- as.integer(collapse)
-    if (collapse > length(transcripts(x)) || collapse < 1L) {
+    if (collapse != 1L && !is.null(gene) && length(transcripts(x) < collapse)) {
       stop("Transcript chosen for `exon.type` is out of bounds")
     }
   } else {
-    collapse <- match.arg(collapse, c('cover', 'constitutive', 'first'))
+    collapse <- match.arg(collapse, choices)
   }
   if (collapse == 'first') {
     collapse <- 1L
@@ -43,7 +44,7 @@ matchGFGeneCollapse <- function(x, collapse) {
 ##' \code{values(...)$exon.ann == 'utr3}.
 setGeneric("idealized", 
 function(x, by=c('all', 'cds', 'utr5', 'utr3'),
-         collapse=c('cover', 'constitutive', 'first'),
+         collapse=c('cover', 'constitutive', 'first', 'longest', 'shortest'),
          cds.cover=c('min', 'max'), which.chr=NULL, flank.up=0L, flank.down=0L,
          ...) {
   standardGeneric("idealized")
@@ -53,7 +54,7 @@ setMethod("idealized", c(x="GFGene"),
 function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
   by <- match.arg(by)
   cds.cover <- match.arg(cds.cover)
-  collapse <- matchGFGeneCollapse(x, collapse)
+  collapse <- matchGFGeneCollapse(collapse, x)
   reducef <- switch(collapse, cover='union', 'intersect')
   
   ## g.strand <- strand(x)
@@ -74,35 +75,43 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
   
   cacheFetch(x, var.name, {
     .idealizedBy <- switch(by, all=.idealizedByAll, cds=.idealizedByCds,
-                           utr5=.idealizedByUtr5, utr3=.idealizedByUtr3)
+                           utr5=.idealizedByUtr5, utr3=.idealizedByUtr3,
+                           longest=.idealizedByLongest)
     is.pc <- isProteinCoding(x, which.chr=which.chr)
     is.pc <- names(is.pc)[is.pc]
     probably.rna <- length(is.pc) == 0
-    
-    ## probably.rna <- (all(!isProteinCoding(x)) ||
-    ##                  (any(!isProteinCoding(x)) && cds.cover == 'min'))
 
+    xcripts <- transcripts(x, which.chr=which.chr)
+    
     if (probably.rna) {
       ## A gene with non-protein coding transcripts is tagged as `utr` across
-      ## across all of its exons in this scenario
-      ranges <- Reduce(reducef,
-                       lapply(transcripts(x, which.chr=which.chr), ranges))
+      ## across all of its exons in this scenario. Note that this is collapsing
+      ## all isoforms into one. Specifying just one of these isoforms isn't
+      ## supported, although it should be.
+      ranges <- Reduce(reducef, lapply(xcripts, ranges))
       exon.anno <- c(rep('utr', length(ranges)))
     } else {
-      take.chr <- function(.list, namez) {
+      take.pc <- function(.list, namez) {
         .list[names(.list) %in% namez]
       }
+      takeOrEmpty <- function(x, idx) {
+        if (length(x) < idx) IRanges() else x[[idx]]
+      }
       
-      .cds <- lapply(take.chr(cds(x, which.chr=which.chr), is.pc), ranges)
-      .utr3 <- lapply(take.chr(utr3(x, which.chr=which.chr), is.pc), ranges)
-      .utr5 <- lapply(take.chr(utr5(x, which.chr=which.chr), is.pc), ranges)
+      .cds <- lapply(take.pc(cds(x, which.chr=which.chr), is.pc), ranges)
+      .utr3 <- lapply(take.pc(utr3(x, which.chr=which.chr), is.pc), ranges)
+      .utr5 <- lapply(take.pc(utr5(x, which.chr=which.chr), is.pc), ranges)
+
+      if (collapse %in% c('longest', 'shortest')) {
+        lens <- sapply(take.pc(xcripts, is.pc), function(xc) {
+          width(range(ranges(xc)))
+        })
+        collapse <- switch(collapse, longest=which.max(lens), which.min(lens))
+      }
       
-      if (is.integer(collapse)) {
+      if (is.numeric(collapse)) {
         ## Perhaps the Nth transcript doesn't have all of the expected segments
         ## in which case, we want to return an empty IRanges
-        takeOrEmpty <- function(x, idx) {
-          if (length(x) < idx) IRanges() else x[[idx]]
-        }
         .exons <- list(utr5=takeOrEmpty(.utr5, collapse),
                        cds=takeOrEmpty(.cds, collapse),
                        utr3=takeOrEmpty(.utr3, collapse))

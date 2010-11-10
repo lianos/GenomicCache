@@ -6,11 +6,11 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
 ## NOTE: 2010-10-23 -- Integrating entrez.id into the values() of annotated
 ## chromosomes. We should switch to them as the primary key instead of using
 ## the gene symbol. All entrez.id in here stuff hasn't been tested yet.
-.annotatedChromosomeFileName <- function(gcache, seqname, flank.up, flank.down,
-                                         stranded) {
+.annotatedChromosomeFileName <- function(gcache, seqname, collapse, flank.up,
+                                         flank.down, stranded) {
   stranded <- if (stranded) 'stranded' else 'not-stranded'
-  fn <- sprintf("%s.annotated.up-%d.down-%d.%s.rda", seqname, flank.up,
-                flank.down, stranded)
+  fn <- sprintf("%s.annotated.collapse-%s.up-%d.down-%d.%s.rda", seqname,
+                collapse, flank.up, flank.down, stranded)
   file.path(cacheDir(gcache), 'annotated.chromosomes', fn)
 }
 
@@ -33,18 +33,22 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
 ##' desired
 ##'
 ##' @return An \code{\linkS4class{AnnotatedChromosome}} object
-getAnnotatedChromosome <- function(gcache, seqnames, flank.up=1000L,
-                                   flank.down=1000L, stranded=TRUE) {
+getAnnotatedChromosome <- function(gcache, seqnames, collapse='cover',
+                                   flank.up=1000L, flank.down=1000L,
+                                   stranded=TRUE) {
   if (inherits(seqnames, 'GRanges')) {
     seqnames <- as.character(seqnames(seqnames))
   }
+  collapse <- matchGFGeneCollapse(collapse)
   seqnames <- unique(as.character(seqnames))
   annotated <- lapply(seqnames, function(seqname) {
-    fn <- .annotatedChromosomeFileName(gcache, seqname, flank.up, flank.down,
-                                       stranded)
+    fn <- .annotatedChromosomeFileName(gcache, seqname, collapse, flank.up,
+                                       flank.down, stranded)
     if (!file.exists(fn)) {
-      v <- sprintf('gcache, flank.up=%d, flank.down=%d, stranded=%s, chrs=%s)',
-                   flank.up, flank.down, stranded, seqname)
+      do.try <- paste('gcache, collapse=%s, flank.up=%d, flank.down=%d,',
+                      'stranded=%s, chrs=%s')
+      do.try <- sprintf(do.try, collapse, flank.up, flank.down, stranded,
+                        seqname)
       stop(basename(fn), " file not found. Generate it first via:\n",
            sprintf('  annotateChromosomeByGenes(%s, ...)', v))
     }
@@ -74,10 +78,13 @@ getAnnotatedChromosome <- function(gcache, seqnames, flank.up=1000L,
 generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
-           chrs=NULL, do.save=TRUE, ...) {
+           chrs=NULL, do.save=TRUE, return.anno=NULL, ...) {
   verbose <- checkVerbose(...)
   bsg <- getBsGenome(gcache)
   bsg.seqlengths <- seqlengths(bsg)
+  if (is.null(return.anno)) {
+    return.anno <- !do.save
+  }
   if (is.null(chrs)) {
     chrs <- chromosomes(gcache)
   }
@@ -124,8 +131,8 @@ generateAnnotatedChromosomesByGenes <-
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
-        fn <- .annotatedChromosomeFileName(.gc, chr, flank.up, flank.down,
-                                           stranded)
+        fn <- .annotatedChromosomeFileName(.gc, chr, gene.collapse, flank.up,
+                                           flank.down, stranded)
         cat("... Saving to", fn, "\n")
         save(chr.anno, file=fn)
       }
@@ -133,11 +140,11 @@ generateAnnotatedChromosomesByGenes <-
       cat("No genes found ... skipping\n")
       chr.anno <- NULL
     }
-    
-    chr.anno
+
+    if (return.anno) chr.anno else chr
   }
 
-  annos
+  invisible(annos)
 }
 
 ##' Calculates a GRanges object for a chromosome, with internal ranges
@@ -202,7 +209,10 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   ## each genes exon.
   clean.list <- lapply(1:length(gene.list), function(idx) {
     g.exons <- gene.list[[idx]]
-    ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
+    ## ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
+    ref.strand <- tryCatch({
+     if (!stranded) '*' else as.character(strand(g.exons)[1]) 
+    }, error=function(e) browser())
     itree <- interval.annos[[ref.strand]]$exclusive
     mm <- matchMatrix(findOverlaps(ranges(g.exons), itree))
     if (nrow(mm) > 0) {

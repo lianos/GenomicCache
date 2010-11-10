@@ -1,3 +1,13 @@
+##' Construct a GappedRanges object from different objects.
+##'
+##' A single \code{GappedRange} can be made from an \code{\linkS4class{IRanges}}
+##' object. Multiple \code{GappedRange}s can be made from a list of
+##' \code{\linkS4class{IRanges}}, or an \code{\linkS4class{IRangesList}}.
+##'
+##' @param irl An \code{\linkS4class{IRanges}}, list of
+##' \code{\linkS4class{IRanges}}, or an \code{\linkS4class{IRangesList}}.
+##'
+##' @return A \code{GappedRanges} object.
 GappedRanges <- function(irl=IRangesList(), ...) {
   if (is.numeric(irl)) {
     irl <- replicate(irl, IRanges(0, 0))
@@ -18,6 +28,27 @@ GappedRanges <- function(irl=IRangesList(), ...) {
   
   as(irl, 'GappedRanges')
 }
+
+setMethod("gwidth", c(x="GappedRanges"),
+function(x, mind.the.gap=TRUE, ...) {
+  if (mind.the.gap) {
+    sum(width(x@cnirl))
+  } else {
+    width(x)
+  }
+})
+
+setMethod("ranges", c(x="GappedRanges"),
+function(x, mind.the.gap=FALSE, ...) {
+  if (mind.the.gap) {
+    x@cnirl
+  } else {
+    ## range(x@cnirl) doesn't work because of some "not NormalIRanges" result
+    inner <- x@cnirl
+    class(inner) <- 'CompressedIRangesList'
+    unlist(range(inner))
+  }
+})
 
 setReplaceMethod("[", "GappedRanges",
 function(x, i, j, ..., value) {
@@ -60,27 +91,6 @@ function(x, i, j, ..., value) {
   cnirl <- as(IRangesList(nirl), 'CompressedNormalIRangesList')
   x@cnirl <- cnirl
   x
-})
-
-setMethod("gwidth", c(x="GappedRanges"),
-function(x, mind.the.gap=TRUE, ...) {
-  if (mind.the.gap) {
-    sum(width(x@cnirl))
-  } else {
-    width(x)
-  }
-})
-
-setMethod("ranges", c(x="GappedRanges"),
-function(x, mind.the.gap=FALSE, ...) {
-  if (mind.the.gap) {
-    x@cnirl
-  } else {
-    ## range(x@cnirl) doesn't work because of some "not NormalIRanges" result
-    inner <- x@cnirl
-    class(inner) <- 'CompressedIRangesList'
-    unlist(range(inner))
-  }
 })
 
 setMethod("findOverlaps", c("Ranges", "GappedRanges"),
