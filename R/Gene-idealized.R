@@ -55,7 +55,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
   by <- match.arg(by)
   cds.cover <- match.arg(cds.cover)
   collapse <- matchGFGeneCollapse(collapse, x)
-  reducef <- switch(collapse, cover='union', 'intersect')
+  reducef <- switch(collapse, constitutive='interset', 'union')
   
   ## g.strand <- strand(x)
   g.strand <- as.vector(strand(transcripts(x, which.chr=which.chr)[[1]][1]))
@@ -85,10 +85,19 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
     
     if (probably.rna) {
       ## A gene with non-protein coding transcripts is tagged as `utr` across
-      ## across all of its exons in this scenario. Note that this is collapsing
-      ## all isoforms into one. Specifying just one of these isoforms isn't
-      ## supported, although it should be.
-      ranges <- Reduce(reducef, lapply(xcripts, ranges))
+      ## across all of its exons in this scenario.
+      ## TODO: Cleanup duplicated code in probably.rna if/else block
+      if (collapse %in% c('longest', 'shortest')) {
+        lens <- sapply(xcripts, function(xc) {
+          width(range(ranges(xc)))
+        })
+        collapse <- switch(collapse, longest=which.max(lens), which.min(lens))
+      }
+      if (is.numeric(collapse)) {
+        ranges <- ranges(xcripts[[collapse]])
+      } else {
+        ranges <- Reduce(reducef, lapply(xcripts, ranges))        
+      }
       exon.anno <- c(rep('utr', length(ranges)))
     } else {
       take.pc <- function(.list, namez) {

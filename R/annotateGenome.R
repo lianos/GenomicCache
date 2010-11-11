@@ -1,3 +1,5 @@
+## TODO: Building flank annotation is still screwed up! Look at RefSeq EIF4A1.
+## there are many INTERNAL utr3* locations!
 setAs("GRanges", "AnnotatedChromosome", function(from) {
   class(from) <- "AnnotatedChromosome"
   from
@@ -209,10 +211,14 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   ## each genes exon.
   clean.list <- lapply(1:length(gene.list), function(idx) {
     g.exons <- gene.list[[idx]]
-    ## ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
-    ref.strand <- tryCatch({
-     if (!stranded) '*' else as.character(strand(g.exons)[1]) 
-    }, error=function(e) browser())
+    if (length(g.exons) == 0L) {
+      cat("idealized gene hosed for entrez", entrez.id[idx], "\n")
+      return(GRanges())
+    }
+    ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
+    ## ref.strand <- tryCatch({
+    ##  if (!stranded) '*' else as.character(strand(g.exons)[1]) 
+    ## }, error=function(e) browser())
     itree <- interval.annos[[ref.strand]]$exclusive
     mm <- matchMatrix(findOverlaps(ranges(g.exons), itree))
     if (nrow(mm) > 0) {
