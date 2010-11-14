@@ -353,7 +353,8 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   exon.anno <- if (direction == 'up') 'utr5*' else 'utr3*'
   bounds <- annotatedTxBounds(annotated)
   flanks <- flank(bounds, width=distance, start=flank.start)
-  unique.flanks <- setdiff(flanks, annotated)
+  ## unique.flanks <- setdiff(flanks, annotated)
+  unique.flanks <- setdiff(flanks, bounds)
   unique.flanks <- resize(unique.flanks, width=width(unique.flanks) + 1,
                           fix=resize.fix)
   o <- findOverlaps(unique.flanks, bounds)
@@ -379,6 +380,7 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
 }
 
 trimRangesToSeqlength <- function(granges, seqlength=NA) {
+  ## TODO: Handle isCircular=TRUE chromosomes
   too.low <- start(granges) < 1
   if (any(too.low)) {
     granges[too.low] <- 1L
@@ -404,7 +406,7 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=N
     .sd <- .SD[1]
     .sd$start <- min(start)
     .sd$end <- max(end)
-    .sd$exon.anno <- 'flank'
+    .sd$exon.anno <- 'txbound'
     .sd[, -axe, with=FALSE]
   }]
   
