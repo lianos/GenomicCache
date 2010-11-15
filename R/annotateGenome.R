@@ -74,9 +74,9 @@ getAnnotatedChromosome <- function(gcache, seqnames, collapse='cover',
 ##' @param gene.by The \code{by} parameter for the \code{GFGene::idealized}
 ##' function
 ##' @param gene.collapse The \code{collapse} parameter for the
-##' \code{GFGene::idealized} function
+##' \code{\link{idealized}} function
 ##' @param gene.collapse The \code{collapse} parameter for the
-##' \code{GFGene::idealized} function
+##' \code{\link{idealized}} function
 generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
@@ -84,6 +84,7 @@ generateAnnotatedChromosomesByGenes <-
   verbose <- checkVerbose(...)
   bsg <- getBsGenome(gcache)
   bsg.seqlengths <- seqlengths(bsg)
+  checkOrCreateDirectory(cacheDir(gcache), 'annotated.chromosomes', TRUE)
   if (is.null(return.anno)) {
     return.anno <- !do.save
   }
@@ -152,20 +153,26 @@ generateAnnotatedChromosomesByGenes <-
 ##' Calculates a GRanges object for a chromosome, with internal ranges
 ##' corresponding to annotated exon boundaries for genes.
 ##'
-##' NOTE: It's not clear how a genomic locus that belongs to an intron of
-##' two genes is assigned the "gene owner". Investigate further!
+##' NOTE: There is ambiguity to which gene an "intronic" locus belong to if
+##' it is intronic to two genes that overlap the same genomic locus.
+##' Investigate further!
+##'
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
 ##' 
-##' @param gene.list list of GRanges objects, each object in the list indicates
-##' the set of exons (across all isoforms) for a gene -- such as you might get
-##' from \code{\link{idealized}(GFGene)}. This can also be a \code{GRangesList},
-##' but a normal list is preffered for now since GRangesList object are slow
-##' to iterate over.
+##' @param gene.list list of \code{\linkS4class{GRanges}} objects, each object
+##' in the list indicates the set of exons (across all isoforms) for a gene --
+##' such as you might get from \code{\link{idealized}}. This can also be a
+##' \code{GRangesList}, but a normal list is preffered for now since GRangesList
+##' object are slow to iterate over.
 ##' @param entrez.id A vector of entrez id's that correspond to the genes in
 ##' gene.list
 ##' @param flank.up The number of basepairs to extend the 5'utr annotation
 ##' @param flank.down The number of basepairs to extend the 3'utr annotation
 ##' @param seqname The name of the chromosome we are building annotations for
 ##' @param seqlength The length of the chromosome
+##'
+##' @return An \code{\linkS4class{AnnotatedChromosome}} object.
 annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
                                flank.down=flank.up, seqname=NULL,
                                seqlength=NA_integer_, stranded=TRUE) {
@@ -256,18 +263,18 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   ## Annotated extended/flanking utrs. If the extended flank runs into
   ## a region that is already annotated, we only take the region that
   ## starts the flank up until the first annotation.
+  if (flank.down > 0) {
+    down <- buildFlankAnnotation(annotated, flank.down, 'down', seqlength)
+    annotated <- c(annotated, down)
+    resort <- TRUE
+  }
+  
   if (flank.up > 0) {
     up <- buildFlankAnnotation(annotated, flank.up, 'up', seqlength)
     annotated <- c(annotated, up)
     resort <- TRUE
   }
   
-  if (flank.down > 0) {
-    down <- buildFlankAnnotation(annotated, flank.down, 'down', seqlength)
-    annotated <- c(annotated, down)
-    resort <- TRUE
-  }
-
   if (resort) {
     annotated <- annotated[order(ranges(annotated))]
     resort <- FALSE
@@ -290,7 +297,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
 }
 
 ##' Returns the exclusive portion of the ranges in .ranges as $exclusive.
-##' The regions that ovlerpa in .ranges are removed and put into $overlap
+##' The regions that ovlerap in .ranges are removed and put into $overlap
 ##'
 ##' @return An \code{\link{IRangesList}} object with $exsluive and $overlap
 splitRangesByOverlap <- function(.ranges) {
@@ -311,6 +318,7 @@ splitRangesByOverlap <- function(.ranges) {
   IRangesList(exclusive=exclusive, overlap=overlap)
 }
 
+##' @nord
 buildIntergenicRegions <- function(annotated, stranded=TRUE) {
   intergenic <- gaps(annotated)
   take <- as.logical(seqnames(intergenic) == seqnames(annotated)[1])
@@ -323,6 +331,7 @@ buildIntergenicRegions <- function(annotated, stranded=TRUE) {
   intergenic
 }
 
+##' @nord
 buildIntronAnnotation <- function(annotated, stranded=TRUE) {
   bounds <- annotatedTxBounds(annotated)
   unannotated <- gaps(annotated)
@@ -346,6 +355,7 @@ buildIntronAnnotation <- function(annotated, stranded=TRUE) {
   introns
 }
 
+##' @nord
 buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   direction <- match.arg(direction, c('up', 'down'))
   resize.fix <- if (direction == 'up') 'start' else 'end'
@@ -379,6 +389,7 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   new.flanks
 }
 
+##' @nord
 trimRangesToSeqlength <- function(granges, seqlength=NA) {
   ## TODO: Handle isCircular=TRUE chromosomes
   too.low <- start(granges) < 1
@@ -396,7 +407,9 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
   granges
 }
 
-annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=NA) {
+##' @nord
+annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
+                              seqlength=NA) {
   ## Calculate inferredmax-bounds by symbol
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
   key(dt) <- 'entrez.id'
@@ -438,6 +451,7 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L, seqlength=N
   bounds
 }
 
+##' @nord
 resortColumns <- function(from, to) {
   common.names <- intersect(colnames(from), colnames(to))
   if (length(common.names) != length(colnames(to))) {
@@ -448,11 +462,12 @@ resortColumns <- function(from, to) {
   from[, xref]
 }
 
-## Flagging genes as "bad" if:
-## (i)   they map to more than one chromosome
-##       (my cached idealized version is hosed when this happens)
-## (ii)  the intersection of all transcript boundaries is empty
-##       (This hoses the utr{3|5}* annotation logic)
+##' Flagging genes as "bad" if:
+##' (i)   they map to more than one chromosome
+##'       (my cached idealized version is hosed when this happens)
+##' (ii)  the intersection of all transcript boundaries is empty
+##'       (This hoses the utr{3|5}* annotation logic)
+##' @nord
 .goodGene <- function(gene, which.chr) {
   xcripts <- transcripts(gene, which.chr=which.chr)
 
@@ -470,5 +485,4 @@ resortColumns <- function(from, to) {
   
   TRUE
 }
-
 
