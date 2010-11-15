@@ -1,3 +1,32 @@
+##' Checks that a directory exists and will create it if not.
+##'
+##' If the directory does not exist, and the caller does not want to create it
+##' an error will be thrown
+##'
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' 
+##' @param path The path to the directory to check.
+##' @param create A logical indicating whether or not the directory should be
+##' created if it doesn't exist
+##' @param verbose Let us know what's going on
+##'
+##' @return TRUE if everything is kosher, otherwise an error is thrown.
+checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE) {
+  if (!dir.exists(path)) {
+    if (!create) {
+      stop("Directory", path, "does not exist", sep=" ")
+    } else {
+      if (verbose) cat("Creating directory", path, "...\n")
+      if (!dir.create(save.path)) {
+        stop("Error! Check permissions? Parent directory exists?")
+      }
+    }
+  }
+
+  TRUE
+}
+
 na.logical <- function(the.logical) {
   the.logical <- as.logical(the.logical)
   the.logical[is.na(the.logical)] <- FALSE
