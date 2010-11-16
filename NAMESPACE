@@ -95,6 +95,7 @@ export(
        na.logical,
        load.it,
        getAnnoPackageName,
+       checkOrCreateDirectory,
        dir.exists
        
 )

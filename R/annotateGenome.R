@@ -61,14 +61,50 @@ getAnnotatedChromosome <- function(gcache, seqnames, collapse='cover',
   do.call(c, unname(annotated))
 }
 
+checkAnnotatedChromosomes <- function(gcache, seqnames, collapse='cover',
+                                      flank.up=1000L, flank.down=1000L,
+                                      stranded=TRUE) {
+  if (inherits(seqnames, 'GRanges')) {
+    seqnames <- as.character(seqnames(seqnames))
+  }
+  collapse <- matchGFGeneCollapse(collapse)
+  seqnames <- unique(as.character(seqnames))
+  annotated <- lapply(seqnames, function(seqname) {
+    fn <- .annotatedChromosomeFileName(gcache, seqname, collapse, flank.up,
+                                       flank.down, stranded)
+    if (!file.exists(fn)) {
+      do.try <- paste('gcache, collapse=%s, flank.up=%d, flank.down=%d,',
+                      'stranded=%s, chrs=%s')
+      do.try <- sprintf(do.try, collapse, flank.up, flank.down, stranded,
+                        seqname)
+      stop(basename(fn), " file not found. Generate it first via:\n",
+           sprintf('  annotateChromosomeByGenes(%s, ...)', v))
+    }
+    var.name <- load(fn)
+    anno <- get(var.name, inherits=FALSE)
+    cat(seqname, "...\n")
+    o <- findOverlaps(anno, ignoreSelf=TRUE, type='any')
+    if (length(o) != 0) {
+      cat("... overlapping annotations!\n")
+    }
+    seqname
+  })
+}
+
 ##' The crank that turns the annotateChromosome function over the chromosomes
 ##' of a \code{GenomicCache}
 ##'
-##' I'm depending on the getGenesOnChromosom function to load a cached list
-##' of gene objects, which have an "idealized" version of the gene we are
-##' using, otherwise the speed will be terrible.
+##' This function depends on the call to \code{\link{getGenesOnChromosome}}
+##' function to load a cached list of gene objects, which have an "idealized"
+##' version of the gene we are using, otherwise the speed will be terrible.
+##'
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' @seealso \code{\link{getGenesOnChromosome}}
+##' @seealso \code{\link{generateGFXGeneModels}}
 ##' 
-##' @param gcache A \code{\link{GenomicCache}} object
+##' @param gcache A \code{\link{GenomicCache}} object to use as a reference
+##' for the chromosome annotations
 ##' @param flank.up Number of base pairs upstream to extend the 5' UTR
 ##' @param flank.down Number of base pairs downstream to extend 3' UTR
 ##' @param gene.by The \code{by} parameter for the \code{GFGene::idealized}
@@ -77,6 +113,9 @@ getAnnotatedChromosome <- function(gcache, seqnames, collapse='cover',
 ##' \code{\link{idealized}} function
 ##' @param gene.collapse The \code{collapse} parameter for the
 ##' \code{\link{idealized}} function
+##'
+##' @return Invisibly returns an \code{\linkS4class{AnnnotatedChromosome}}
+##' object
 generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
@@ -100,14 +139,14 @@ generateAnnotatedChromosomesByGenes <-
   annos <- foreach(chr=chrs, .packages=c("GenomicFeaturesX"),
                    .inorder=FALSE, .verbose=verbose) %dopar% {
     cat(chr, "...\n")
-    chr.length <- bsg.seqlengths[chr]
+    seqlength <- bsg.seqlengths[chr]
     .gc <- duplicate(gcache, pre.load=NULL)
     on.exit(dispose(.gc))
     
     genes <- getGenesOnChromosome(.gc, chr)
     entrez.id <- sapply(genes, entrezId)
     
-    cat("... cleaning gene models ...\n")
+    cat("... (", chr, ") cleaning gene models\n", sep="")
     models <- lapply(genes, function(gene) {
       ## Do not include genes whose transcripts do not overlap at all
       ## or exist on a different chromosome
@@ -126,21 +165,21 @@ generateAnnotatedChromosomesByGenes <-
     entrez.id <- entrez.id[keep]
     
     if (length(models) > 0) {
-      cat("... annotating chromosome ...")
+      cat("... (", chr, ") annotating chromosome\n", sep="")
       st <- proc.time()['elapsed']
       chr.anno <- annotateChromosome(models, entrez.id, flank.up, flank.down,
-                                     seqname=chr, seqlength=chr.length,
+                                     seqname=chr, seqlength=seqlength,
                                      stranded=stranded)
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
         fn <- .annotatedChromosomeFileName(.gc, chr, gene.collapse, flank.up,
                                            flank.down, stranded)
-        cat("... Saving to", fn, "\n")
+        cat("... (", chr, ") Saving to", fn, "\n")
         save(chr.anno, file=fn)
       }
     } else {
-      cat("No genes found ... skipping\n")
+      cat("...(", chr, ") No genes found ... skipping\n")
       chr.anno <- NULL
     }
 
@@ -189,7 +228,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     seqname <- as.character(seqnames(gene.list[[1]][1]))
   }
   if (is.null(seqlength) || is.na(seqlength)) {
-      names(seqlength) <- seqname
+    names(seqlength) <- seqname
   }
   
   if (is(gene.list, 'GRangesList')) {
@@ -362,9 +401,11 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   flank.start <- direction == 'up'
   exon.anno <- if (direction == 'up') 'utr5*' else 'utr3*'
   bounds <- annotatedTxBounds(annotated)
+  chr.mask <- reduce(union(annotated, bounds))
   flanks <- flank(bounds, width=distance, start=flank.start)
   ## unique.flanks <- setdiff(flanks, annotated)
-  unique.flanks <- setdiff(flanks, bounds)
+  ## unique.flanks <- setdiff(flanks, bounds)
+  unique.flanks <- setdiff(flanks, chr.mask)
   unique.flanks <- resize(unique.flanks, width=width(unique.flanks) + 1,
                           fix=resize.fix)
   o <- findOverlaps(unique.flanks, bounds)

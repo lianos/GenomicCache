@@ -11,7 +11,7 @@
 ##' created if it doesn't exist
 ##' @param verbose Let us know what's going on
 ##'
-##' @return TRUE if everything is kosher, otherwise an error is thrown.
+##' @return \code{TRUE} if everything is kosher, otherwise an error is thrown.
 checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE) {
   if (!dir.exists(path)) {
     if (!create) {
@@ -27,6 +27,13 @@ checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE) {
   TRUE
 }
 
+##' Convenience method to sets \code{NA}'s in a logical vector to \code{FALSE}.
+##' 
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' 
+##' @param the.logical A logical vector/Rle
+##' @return A \code{logical} with \code{NA} values set to \code{FALSE}
 na.logical <- function(the.logical) {
   the.logical <- as.logical(the.logical)
   the.logical[is.na(the.logical)] <- FALSE
