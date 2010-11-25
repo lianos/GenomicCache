@@ -1,18 +1,25 @@
-## setOldClass(c("data.table", "data.frame"))
 setOldClass(c('data.table', 'data.frame'))
+
+setAs("data.frame", "data.table", function(from) {
+  as.data.table(from)
+})
+
+setAs("data.table", "data.frame", function(from) {
+  as.data.frame(from)
+})
 
 setAs("GRanges", "data.table", function(from) {
   if (length(from) == 0L) {
     return(data.table())
   }
-  data.table(as.data.frame(from))
+  as.data.table(as.data.frame(from))
 })
 
 setAs("IRanges", "data.table", function(from) {
   if (length(from) == 0L) {
     return(data.table())
   }
-  data.table(cbind(as.data.frame(from), as.data.frame(values(from))))
+  as.data.table(cbind(as.data.frame(from), as.data.frame(values(from))))
 })
 
 setAs("data.table", "GRanges", function(from) {
