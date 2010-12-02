@@ -324,15 +324,16 @@ function(x, ...) {
 
 ##' @importFrom ShortRead chromosome
 setMethod("chromosome", c(object="GFGene"), 
-function(object, as.DNAString=FALSE, unmasked=TRUE, ...) {
+function(object, as.DNAString=FALSE, unmasked=TRUE, which.chr=NULL, ...) {
   chr <- as.character(object@.chromosome)
   if (as.DNAString) {
-    stop("Manually retreive the chromosome from a BSgenome object")
-    ## genome <- getBsGenome(object)
-    ## chr <- genome[[chr]]
-    ## if (unmasked) {
-    ##   chr <- unmasked(chr)
-    ## }
+    if (is.null(which.chr)) {
+      chr <- chr[1]
+    }
+    chr <- getBsGenome(object)[[chr]]
+    if (unmasked) {
+      chr <- unmasked(chr)
+    }
   }
   chr
 })
