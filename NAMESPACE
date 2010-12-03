@@ -93,6 +93,7 @@ export(
 
        ## utilities
        na.logical,
+       convert.na,
        load.it,
        getAnnoPackageName,
        checkOrCreateDirectory,
