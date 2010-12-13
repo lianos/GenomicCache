@@ -18,7 +18,7 @@ checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE) {
       stop("Directory", path, "does not exist", sep=" ")
     } else {
       if (verbose) cat("Creating directory", path, "...\n")
-      if (!dir.create(save.path)) {
+      if (!dir.create(path)) {
         stop("Error! Check permissions? Parent directory exists?")
       }
     }

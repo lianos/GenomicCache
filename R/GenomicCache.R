@@ -154,7 +154,7 @@ function(x, by=c('tx', 'gene'), use.names=FALSE, ...) {
 })
 
 setMethod("fiveUTRsBy", c(x="GenomicCache"),
-function(x, by, use.names, flank.up=1000, flank.down=100, ...) {
+function(x, by, use.names, flank.up=1000, flank.down=1000, ...) {
   by <- match.arg(by)
   if (by == 'tx') {
     utrs <- fiveUTRsByTranscript(x, use.names, ...)

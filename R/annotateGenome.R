@@ -448,14 +448,20 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
   granges
 }
 
-##' @nord
+##' Calculates the transcription bounds from an annotation table.
+##' 
+##' @param annotated A data.frame/data.table/AnnotatedChromsome
+##' @param flank.up Number of bases to extend the upstream tx bound
+##' @param flank.down Number of bases to extedn the downstream tx bound
+##' @return A \code{data.table} with the transcription bounds
 annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
                               seqlength=NA) {
   ## Calculate inferredmax-bounds by symbol
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
   key(dt) <- 'entrez.id'
   axe <- which(colnames(dt) == 'entrez.id')
-  
+
+  ## by entrez.id, chr, strand
   bounds <- dt[, by='entrez.id', {
     .sd <- .SD[1]
     .sd$start <- min(start)

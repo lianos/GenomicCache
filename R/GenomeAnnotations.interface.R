@@ -12,8 +12,24 @@ loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
   if (is.na(file.info(fpath)$isdir)) {
     return(NULL)
   }
-  obj <- load(fpath)
-  get(obj)
+  load.it(fpath)
+}
+
+addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
+                                       flank.up=NULL, flank.down=NULL) {
+  gdir <- cacheDir(gcache, 'gene.models')
+  files <- list.files(gdir, full.names=TRUE)
+  foreach(fname=files, .packages=c("GenomicFeaturesX")) %dopar% {
+    cat(fname, "\n")
+    .gc <- duplicate(gcache)
+    on.exit(dispose(.gc))
+    m <- regexpr('(chr.*?\\.)', fname)
+    chr <- substring(fname, m, m + attr(m, 'match.length') - 2)
+    genes <- getGenesOnChromosome(.gc, chr)
+    whatever <- lapply(genes, idealized, gene.by, gene.collapse, which.chr=chr)
+    save(genes, file=fname)
+    chr
+  }
 }
 
 ## ~ 6 Hours for RefSeq hg18
