@@ -1,0 +1,87 @@
+#!/usr/bin/env Rscript
+
+##
+## Creates a new GenomicCache from the specified source
+##
+
+options(error=function(e) {
+  quit(save='no', status=1)
+})
+
+suppressPackageStartupMessages({
+  if (!require(optparse)) {
+    err('optparse library needed, please install via:\n',
+        'install.packages("optparse", repos="http://R-Forge.R-project.org")')
+  }
+})
+
+err <- function(..., sep=" ") {
+  msg <- paste(unlist(list(...)), sep=sep)
+  cat("ERROR:", msg, "\n")
+  quit(save='no', status=1)
+}
+
+usage <- paste(
+  "usage: %prog [options] GENOME ANNO\n",
+  "Creates a new GenomicCache directory and creates specified annotation DB.\n",
+  "Appropriate values for GENOME: hg18, hg19, mm9, etc.\n",
+  "Appropriate values for ANNO: refseq, ucsc, aceview",
+  sep="\n")
+
+option.list <-
+  list(
+       make_option(c('-d', '--dirname'), default="", type="character",
+                    help="The name of directory to create and store GFXCache")
+       )
+
+parser <- OptionParser(usage=usage, option_list=option.list)
+parsed <- parse_args(parser, positional_argument=TRUE)
+opts <- parsed$options
+args <- parsed$args
+
+################################################################################
+## Process positional arguments
+if (length(args) != 2) {
+  err("Path to GenomicCache parent directory required")
+}
+
+genome <- args[1]
+anno.sources <- c('refseq', 'ucsc', 'aceview')
+if (!args[2] %in% anno.sources) {
+  err("Illegal annotation source")
+}
+anno.source <- match.arg(args[2], anno.sources)
+ucsc.table <- switch(anno.source, refseq='refGene', ucsc='knownGene',
+                     aceview='acembly', err("Unknown Annotation Source"))
+
+gc.path <- opts$dirname
+if (gc.path == "") {
+  gc.path <- paste("GenomicCache", genome, anno.source, sep=".")
+}
+
+fi <- file.info(gc.path)
+if (!is.na(fi$isdir)) {
+  err("Directory/file already exists")
+}
+
+dirs <- c(gc.path, paste(gc.path, c('cache', 'features'), sep="/"))
+for (dir in dirs) {
+  if (!dir.create(dir)) {
+    err("Could not create directory:", dir, "\nCheck permissions?")
+  }
+}
+
+################################################################################
+## Down to business
+cat("... loading required packages ...\n")
+suppressPackageStartupMessages({
+  library(GenomicFeatures)
+})
+
+start.time <- proc.time()['elapsed']
+txdb <- makeTranscriptDbFromUCSC(genome=genome, tablename=ucsc.table)
+fn <- paste('TranscriptDb', genome, anno.source, 'sqlite', sep=".")
+saveFeatures(txdb, file.path(gc.path, 'features', fn))
+time.taken <- proc.time()['elapsed'] - start.time
+
+cat("====== Total time taken:", time.taken, "seconds ======\n\n")
