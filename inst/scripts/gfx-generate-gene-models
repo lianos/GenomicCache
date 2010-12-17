@@ -1,0 +1,119 @@
+#!/usr/bin/env Rscript
+
+##
+## Generates gene models for a GenomicCache object
+##
+
+## options(error=function(e) {
+##   quit(save='no', status=1)
+## })
+library(plyr)
+suppressPackageStartupMessages({
+  if (!require(optparse)) {
+    err('optparse library needed, please install via:\n',
+        'install.packages("optparse", repos="http://R-Forge.R-project.org")')
+  }
+})
+
+err <- function(..., sep=" ") {
+  msg <- paste(unlist(list(...)), sep=sep)
+  cat("ERROR:", msg, "\n")
+  quit(save='no', status=1)
+}
+
+usage <- paste(
+  "usage: %prog [options] GENOMIC_CACHE_PARENT_DIR",
+  "Generates specified gene models for a GenomicCache object.\n",
+  "If gene models already exist, then the requested gene models are",
+  "added to them.",
+  sep="\n")
+
+option.list <-
+  list(
+       make_option(c('-t', '--threads'), default=1L, type="integer",
+                    help="The number of threads to use."),
+       make_option(c('-b', '--by'), default='all', type='character',
+                    help="Parts of gene to idealize (all, cds, utr5, utr3)"),
+       make_option(c('-c', '--collapse'), default='cover', type="character",
+                   help="How to compress isoforms (cover, constitutive, longest)"),
+       make_option(c('-C', '--cds.cover'), default='min', type='character',
+                   help="min = UTR's 'outrank' CDS region in collapse. max = opposite"),
+       make_option(c('-u', '--flank.up'), default='0', type="character",
+                   help="Number of basepairs to extend 5'UTR (comma seperated for multiple)"),
+       make_option(c('-d', '--flank.down'), default='0', type="character",
+                   help="Number of basepairs to extend 3'UTR"),
+       make_option(c('-s', '--chromosomes'), default="", type="character",
+                   help="Which chromosomes to use (defualts to all)"),
+       make_option(c('-v', '--verbose'), default=FALSE, action="store_true",
+                   help="Make some noise")
+       )
+
+parser <- OptionParser(usage=usage, option_list=option.list)
+parsed <- parse_args(parser, positional_argument=TRUE)
+opts <- parsed$options
+args <- parsed$args
+
+################################################################################
+## Process positional arguments
+if (length(args) != 1) {
+  err("Path to GenomicCache parent directory required")
+}
+
+gc.path <- args[1]
+fi <- file.info(gc.path)
+if (is.na(fi$isdir) || !fi$isdir) {
+  err("Illegal path to GenomicCache directory")
+}
+
+################################################################################
+## Processes optional arguments
+flank.up <- as.integer(unlist(strsplit(opts$flank.up, ",\\s*")))
+flank.down <- as.integer(unlist(strsplit(opts$flank.down, ",\\s*")))
+if (length(flank.up) != length(flank.down)) {
+  err("length of flank.up must equal flank.down")
+}
+
+opts$chromosomes <- unlist(strsplit(opts$chromosomes, ",\\s*"))
+if (length(opts$chromosomes) == 0) {
+  opts$chromosomes <- NULL
+}
+
+################################################################################
+## Down to business
+cat("... loading required packages ...\n")
+suppressPackageStartupMessages({
+  if (opts$threads > 1) {
+    if (!require(doMC)) {
+      err("Using threads requires doMC")
+    }
+  }
+  library(GenomicFeaturesX)
+})
+
+if (opts$threads > 1) {
+  registerDoMC(opts$threads)
+} else {
+  registerDoSEQ()
+}
+
+gc <- GenomicCache(gc.path)
+cache.dir <- cacheDir(gc, 'gene.models')
+checkOrCreateDirectory(cache.dir, create=TRUE)
+
+## Are we creating them, or adding to them?
+genf.args <- list(gcache=gc, gene.by=opts$gene.by,
+                  gene.collapse=opts$gene.collapse,
+                  gene.cds.cover=opts$cds.cover, flank.up=opts$flank.up,
+                  flank.down=opts$flank.down, verbose=opts$verbose)
+if (length(list.files(cache.dir, pattern='rda$')) == 0) {
+  genf <- GenomicFeaturesX:::generateGFXGeneModels
+  genf.args$chromosomes <- opts$chromosomes
+} else {
+  genf <- GenomicFeaturesX:::addIdealizedToGFXGeneCache
+}
+
+start.time <- proc.time()['elapsed']
+do.call(genf, genf.args)
+time.taken <- proc.time()['elapsed'] - start.time
+
+cat("====== Total time taken:", time.taken, "seconds ======\n\n")
