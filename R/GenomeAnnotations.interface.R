@@ -16,17 +16,20 @@ loadGFXGeneModels <- function(gcache, chromosome, cache.dir=NULL) {
 }
 
 addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
-                                       flank.up=NULL, flank.down=NULL) {
+                                       gene.cds.cover='min',
+                                       flank.up=0L, flank.down=0L,
+                                       verbose=FALSE) {
   gdir <- cacheDir(gcache, 'gene.models')
   files <- list.files(gdir, full.names=TRUE)
-  foreach(fname=files, .packages=c("GenomicFeaturesX")) %dopar% {
+  foreach(fname=files, .packages=c("GenomicFeaturesX"), .verbose=verbose) %dopar% {
     cat(fname, "\n")
     .gc <- duplicate(gcache)
     on.exit(dispose(.gc))
     m <- regexpr('(chr.*?\\.)', fname)
     chr <- substring(fname, m, m + attr(m, 'match.length') - 2)
     genes <- getGenesOnChromosome(.gc, chr)
-    whatever <- lapply(genes, idealized, gene.by, gene.collapse, which.chr=chr)
+    whatever <- lapply(genes, idealized, gene.by, gene.collapse, gene.cds.cover,
+                       which.chr=chr, flank.up=flank.up, flank.down=flank.down)
     save(genes, file=fname)
     chr
   }
@@ -34,9 +37,10 @@ addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
 
 ## ~ 6 Hours for RefSeq hg18
 ## ~ 8.3 hours for Ensembl hg18
-generateGFXGeneModels <- function(gcache, chromosomes=NULL,
+generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
+                                  gene.cds.cover='min', chromosomes=NULL,
                                   flank.up=c(0, 500, 1000),
-                                  flank.down=c(0, 500, 1000)) {
+                                  flank.down=c(0, 500, 1000), verbose=FALSE) {
   if (!require(plyr)) stop("Plyr is used here")
   cache.dir <- cacheDir(gcache, 'gene.models')
   if (!dir.exists(cache.dir)) {
@@ -52,38 +56,48 @@ generateGFXGeneModels <- function(gcache, chromosomes=NULL,
 
   xcripts <- transcripts(gcache)
 
-  foreach(chr=chromosomes, .packages="GenomicFeaturesX", .inorder=FALSE) %dopar% {
+  foreach(chr=chromosomes, .packages="GenomicFeaturesX", .inorder=FALSE,
+          .verbose=verbose) %dopar% {
+  ## for (chr in chromosomes) {
     cat("===", chr, "===...\n")
     .gc <- duplicate(gcache)
-    on.exit(dispose(.gc))
 
     chr.xcripts <- xcripts[which(seqnames(xcripts) == chr)]
-    .so.far <- character(length(chr.xcripts))
-    .idx <- 1L
-    
-    genes <- llply(values(chr.xcripts)$tx_name, function(tx) {
-      if (tx %in% .so.far) {
-        return(NULL)
-      }
-      g <- tryCatch(GFGene(tx.id=tx, .gc), error=function(e) NULL)
-      if (!is.null(g)) {
-        ## cat(chr, symbol(g), "\n")
-        xcripts <- transcripts(g, which.chr=chr)
-        to <- .idx + length(xcripts) - 1
-        .so.far[.idx:to] <<- values(xcripts)$tx_name
-        .idx <<- to + 1
-        ## Generate idealized models
-        for (i in 1:length(flank.up)) {
-          idealized(g, which.chr=chr, flank.up=flank.up[i],
-                    flank.down=flank.down[i])
+    if (length(chr.xcripts) == 0L) {
+      genes <- list()
+    } else {
+      .so.far <- character(length(chr.xcripts))
+      .idx <- 1L
+      genes <- lapply(values(chr.xcripts)$tx_name, function(tx) {
+        if (tx %in% .so.far) {
+          return(NULL)
         }
+        ## cat("..", tx, "..\n")
+        g <- tryCatch(GFGene(tx.id=tx, .gc), error=function(e) NULL)
+        if (!is.null(g)) {
+          ## cat(chr, symbol(g), "\n")
+          xcripts <- transcripts(g, which.chr=chr)
+          to <- .idx + length(xcripts) - 1
+          .so.far[.idx:to] <<- values(xcripts)$tx_name
+          .idx <<- to + 1
+          ## Generate idealized models
+          for (i in 1:length(flank.up)) {
+            idealized(g, gene.by, gene.collapse, gene.cds.cover, which.chr=chr,
+                      flank.up=flank.up[i], flank.down=flank.down[i])
+          }
+        }
+        g
+      })
+      
+      genes <- genes[!sapply(genes, is.null)]
+      if (length(genes) > 0) {
+        names(genes) <- make.unique(sapply(genes, symbol))
       }
-      g
-    }, .progress='none')
-
-    genes <- genes[!sapply(genes, is.null)]
-    names(genes) <- make.unique(sapply(genes, symbol))
+    }
+    
+    cat("...", chr, "done\n")
     save(genes, file=file.path(cache.dir, .geneCacheFileName(.gc, chr)))
+    dispose(.gc)
     chr
   }
   

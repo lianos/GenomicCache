@@ -130,7 +130,7 @@ GFGene <- function(..., .gc=NULL) {
   ## if (!is.null(entrez.id) && !(id %in% names(entrez.id))) {
   ##   entrez.id <- NULL
   ## }
-  if (is.null(entrez.id)) {
+  if (is.null(entrez.id) || length(entrez.id) == 0) {
     stop("Unknown gene identifier: ", id, " (is it a ", id.type, "?)")
   }
   

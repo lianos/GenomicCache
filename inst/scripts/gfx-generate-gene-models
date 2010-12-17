@@ -22,31 +22,30 @@ err <- function(..., sep=" ") {
 }
 
 usage <- paste(
-  "usage: %prog [options] GENOMIC_CACHE_PARENT_DIR",
+  "usage: %prog [options] GENOMIC_CACHE_PARENT_DIR\n",
   "Generates specified gene models for a GenomicCache object.\n",
   "If gene models already exist, then the requested gene models are",
   "added to them.",
   sep="\n")
 
-option.list <-
-  list(
-       make_option(c('-t', '--threads'), default=1L, type="integer",
-                    help="The number of threads to use."),
-       make_option(c('-b', '--by'), default='all', type='character',
-                    help="Parts of gene to idealize (all, cds, utr5, utr3)"),
-       make_option(c('-c', '--collapse'), default='cover', type="character",
-                   help="How to compress isoforms (cover, constitutive, longest)"),
-       make_option(c('-C', '--cds.cover'), default='min', type='character',
-                   help="min = UTR's 'outrank' CDS region in collapse. max = opposite"),
-       make_option(c('-u', '--flank.up'), default='0', type="character",
-                   help="Number of basepairs to extend 5'UTR (comma seperated for multiple)"),
-       make_option(c('-d', '--flank.down'), default='0', type="character",
-                   help="Number of basepairs to extend 3'UTR"),
-       make_option(c('-s', '--chromosomes'), default="", type="character",
-                   help="Which chromosomes to use (defualts to all)"),
-       make_option(c('-v', '--verbose'), default=FALSE, action="store_true",
-                   help="Make some noise")
-       )
+option.list <- list(
+  make_option(c('-t', '--threads'), default=1L, type="integer",
+              help="The number of threads to use."),
+  make_option(c('-b', '--gene.by'), default='all', type='character',
+              help="Parts of gene to idealize (all, cds, utr5, utr3)"),
+  make_option(c('-c', '--gene.collapse'), default='cover', type="character",
+              help="How to compress isoforms (cover, constitutive, longest)"),
+  make_option(c('-C', '--cds.cover'), default='min', type='character',
+              help="min: UTR's 'outrank' CDS region in collapse. max = opposite"),
+  make_option(c('-u', '--flank.up'), default='0', type="character",
+              help="Number of BP's to extend 5'UTR (comma seperated for multiple)"),
+  make_option(c('-d', '--flank.down'), default='0', type="character",
+              help="Number of basepairs to extend 3'UTR downstream."),
+  make_option(c('-s', '--chromosomes'), default="", type="character",
+              help="Which chromosomes to use (defualts to all)"),
+  make_option(c('-v', '--verbose'), default=FALSE, action="store_true",
+              help="Make some noise")
+)
 
 parser <- OptionParser(usage=usage, option_list=option.list)
 parsed <- parse_args(parser, positional_argument=TRUE)
@@ -67,9 +66,9 @@ if (is.na(fi$isdir) || !fi$isdir) {
 
 ################################################################################
 ## Processes optional arguments
-flank.up <- as.integer(unlist(strsplit(opts$flank.up, ",\\s*")))
-flank.down <- as.integer(unlist(strsplit(opts$flank.down, ",\\s*")))
-if (length(flank.up) != length(flank.down)) {
+opts$flank.up <- as.integer(unlist(strsplit(opts$flank.up, ",\\s*")))
+opts$flank.down <- as.integer(unlist(strsplit(opts$flank.down, ",\\s*")))
+if (length(opts$flank.up) != length(opts$flank.down)) {
   err("length of flank.up must equal flank.down")
 }
 
@@ -83,15 +82,18 @@ if (length(opts$chromosomes) == 0) {
 cat("... loading required packages ...\n")
 suppressPackageStartupMessages({
   if (opts$threads > 1) {
-    if (!require(doMC)) {
-      err("Using threads requires doMC")
+    foreach.package <- switch(.Platform$OS.type, windows='doSMP', 'doMC')
+    if (!require(foreach.package, character.only=TRUE)) {
+      err("Multithreading requires", foreach.package)
     }
   }
-  library(GenomicFeaturesX)
+  ## library(GenomicFeaturesX)
+  dl('gfx')
 })
 
 if (opts$threads > 1) {
-  registerDoMC(opts$threads)
+  do.register <- switch(.Platform$OS.type, windows=registerDoSMP, registerDoMC)
+  do.register(opts$threads)
 } else {
   registerDoSEQ()
 }
@@ -106,10 +108,12 @@ genf.args <- list(gcache=gc, gene.by=opts$gene.by,
                   gene.cds.cover=opts$cds.cover, flank.up=opts$flank.up,
                   flank.down=opts$flank.down, verbose=opts$verbose)
 if (length(list.files(cache.dir, pattern='rda$')) == 0) {
-  genf <- GenomicFeaturesX:::generateGFXGeneModels
+  ## genf <- GenomicFeaturesX:::generateGFXGeneModels
+  genf <- generateGFXGeneModels
   genf.args$chromosomes <- opts$chromosomes
 } else {
-  genf <- GenomicFeaturesX:::addIdealizedToGFXGeneCache
+  ## genf <- GenomicFeaturesX:::addIdealizedToGFXGeneCache
+  genf <- addIdealizedToGFXGeneCache
 }
 
 start.time <- proc.time()['elapsed']

@@ -49,23 +49,3 @@ generateCacheName <- function(base, ...) {
   params <- paste(names(params), values, sep=":", collapse=",")
   paste(base, params, sep="/")
 }
-################################################################################
-## These are used to store cached objects for a given GenomicCache, such as
-## stored GFGene objects / chromosome, see getGenesOnChromosome
-
-
-## Pass in extra sub directories through \code{...}
-GFXCacheDir <- function(path=NULL, ...) {
-  if (is.null(path)) {
-    path <- Sys.getenv(.GFX$cache$environment.key)
-    if (is.null(path)) {
-      stop("No cache directory provided, and one is not set in the environment")
-    }
-    subdirs <- list(...)
-    if (length(subdirs) > 0) {
-      path <- do.call(file.path, c(list(path), subdirs))
-    }
-  }
-  assert.dir.exists(path)
-  path
-}

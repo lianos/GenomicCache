@@ -123,7 +123,7 @@ generateAnnotatedChromosomesByGenes <-
   verbose <- checkVerbose(...)
   bsg <- getBsGenome(gcache)
   bsg.seqlengths <- seqlengths(bsg)
-  checkOrCreateDirectory(cacheDir(gcache), 'annotated.chromosomes', TRUE)
+  checkOrCreateDirectory(cacheDir(gcache, 'annotated.chromosomes'), TRUE)
   if (is.null(return.anno)) {
     return.anno <- !do.save
   }
@@ -143,7 +143,10 @@ generateAnnotatedChromosomesByGenes <-
     .gc <- duplicate(gcache, pre.load=NULL)
     on.exit(dispose(.gc))
     
-    genes <- getGenesOnChromosome(.gc, chr)
+    genes <- tryCatch(getGenesOnChromosome(.gc, chr), error=function(e) NULL)
+    if (is.null(genes)) {
+      return(NULL)
+    }
     entrez.id <- sapply(genes, entrezId)
     
     cat("... (", chr, ") cleaning gene models\n", sep="")
