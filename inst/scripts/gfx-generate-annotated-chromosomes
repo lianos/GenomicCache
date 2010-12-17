@@ -1,1 +1,116 @@
 #!/usr/bin/env Rscript
+
+##
+## Generates annotated chromosome objects from prebuilt gene models.
+##
+
+options(error=function(e) {
+  quit(save='no', status=1)
+})
+
+suppressPackageStartupMessages({
+  if (!require(optparse)) {
+    err('optparse library needed, please install via:\n',
+        'install.packages("optparse", repos="http://R-Forge.R-project.org")')
+  }
+})
+
+err <- function(..., sep=" ") {
+  msg <- paste(unlist(list(...)), sep=sep)
+  cat("ERROR:", msg, "\n")
+  quit(save='no', status=1)
+}
+
+usage <- paste("gfx-generate-annotated-chromosomes [options]",
+               "GENOMIC_CACHE_PARENT_DIR [COLLAPSE]")
+description <- paste("",
+  "Generates annotated chromosomes from specified 'idealized' parameters.\n",
+  "COLLAPSE specifies how to compress multiple isoforms into one gene.",
+  "Acceptable values are 'cover', 'constitutive', 'longest'. If this is left",
+  "empty, it defaults to 'cover'.\n",
+  "The GenomicCache must have 'idealized' versions of the genes pre-built for",
+  "the desired values of cover, gene.by and cds.cover",
+  sep="\n    ")
+
+usage <- paste(usage, description, sep="\n")
+
+option.list <- list(
+  make_option(c('-t', '--threads'), default=1L, type="integer",
+              help="The number of threads to use. (requires foreach packages)"),
+  make_option(c('-b', '--gene.by'), default='all', type='character',
+              help="Parts of gene to idealize (all, cds, utr5, utr3)"),
+  make_option(c('-C', '--cds.cover'), default='min', type='character',
+              help="min = UTR's 'outrank' CDS region in collapse. max = opposite"),
+  make_option(c('-u', '--flank.up'), default=1000L, type="integer",
+              help="Number of BPs to extend 5'UTR"),
+  make_option(c('-d', '--flank.down'), default=1000L, type="integer",
+              help="Number of basepairs to extend 3'UTR"),
+  make_option(c('-s', '--chromosomes'), default="", type="character",
+              help="Chromosomes to build (defualts to ones with built gene models)"),
+  make_option(c('-v', '--verbose'), default=FALSE, action="store_true",
+              help="Make some noise")
+)
+
+parser <- OptionParser(usage=usage, option_list=option.list)
+parsed <- parse_args(parser, positional_argument=TRUE)
+opts <- parsed$options
+args <- parsed$args
+
+################################################################################
+## Process positional arguments
+if (length(args) == 0) {
+  err("Path to GenomicCache parent directory required")
+}
+
+gc.path <- args[1]
+
+if (length(args) > 1) {
+  gene.collapse <- args[2]
+} else {
+  gene.collapse <- 'cover'
+}
+
+fi <- file.info(gc.path)
+if (is.na(fi$isdir) || !fi$isdir) {
+  err("Illegal path to GenomicCache directory")
+}
+
+################################################################################
+## Processes optional arguments
+opts$chromosomes <- unlist(strsplit(opts$chromosomes, ",\\s*"))
+if (length(opts$chromosomes) == 0) {
+  opts$chromosomes <- NULL
+}
+
+################################################################################
+## Down to business
+cat("... loading required packages ...\n")
+suppressPackageStartupMessages({
+  if (opts$threads > 1) {
+    foreach.package <- switch(.Platform$OS.type, windows='doSMP', 'doMC')
+    if (!require(foreach.package, character.only=TRUE)) {
+      err("Multithreading requires", foreach.package)
+    }
+  }
+  library(GenomicFeaturesX)
+  ## dl('gfx')
+})
+
+if (opts$threads > 1) {
+  do.register <- switch(.Platform$OS.type, windows=registerDoSMP, registerDoMC)
+  do.register(opts$threads)
+} else {
+  registerDoSEQ()
+}
+
+gc <- GenomicCache(gc.path)
+start.time <- proc.time()['elapsed']
+generateAnnotatedChromosomesByGenes(gc, gene.collapse=gene.collapse,
+                                    gene.by=opts$gene.by,
+                                    gene.cds.cover=opts$cds.cover,
+                                    flank.up=opts$flank.up,
+                                    flank.down=opts$flank.down,
+                                    chrs=opts$chromosomes)
+time.taken <- proc.time()['elapsed'] - start.time
+cat("====== Total time taken:", time.taken, "seconds ======\n\n")
+
