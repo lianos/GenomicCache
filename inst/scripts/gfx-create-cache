@@ -21,17 +21,18 @@ err <- function(..., sep=" ") {
   quit(save='no', status=1)
 }
 
-usage <- paste(
-  "usage: %prog [options] GENOME ANNO\n",
+usage <- paste("gfx-create-cache [options] GENOME ANNOTATION\n",
   "Creates a new GenomicCache directory and creates specified annotation DB.\n",
-  "Appropriate values for GENOME: hg18, hg19, mm9, etc.\n",
-  "Appropriate values for ANNO: refseq, ucsc, aceview",
-  sep="\n")
+  "Appropriate values for GENOME: hg18, hg19, mm9, etc.",
+  "Appropriate values for ANNOTATION: refseq, ucsc, aceview",
+  sep="\n    ")
 
 option.list <-
   list(
-       make_option(c('-d', '--dirname'), default="", type="character",
-                    help="The name of directory to create and store GFXCache")
+       make_option(c('-p', '--parent.dir'), default=".", type="character",
+                   help="Directory to create and store GFXCache dir"),
+       make_option(c('-n', '--name', default=NULL), type='character',
+                   help="The name of the GenomicCache directory")
        )
 
 parser <- OptionParser(usage=usage, option_list=option.list)
@@ -42,46 +43,25 @@ args <- parsed$args
 ################################################################################
 ## Process positional arguments
 if (length(args) != 2) {
-  err("Path to GenomicCache parent directory required")
+  err("Illegal number of arguments")
 }
 
 genome <- args[1]
-anno.sources <- c('refseq', 'ucsc', 'aceview')
-if (!args[2] %in% anno.sources) {
-  err("Illegal annotation source")
-}
-anno.source <- match.arg(args[2], anno.sources)
-ucsc.table <- switch(anno.source, refseq='refGene', ucsc='knownGene',
-                     aceview='acembly', err("Unknown Annotation Source"))
+annotation <- args[2]
 
-gc.path <- opts$dirname
-if (gc.path == "") {
-  gc.path <- paste("GenomicCache", genome, anno.source, sep=".")
+parent.info <- file.info(opts$parent.dir)
+if (is.na(parent.info$isdir) || !parent.info$isdir) {
+  err("Parent directory for GenomicCache object doesn't exist")
 }
 
-fi <- file.info(gc.path)
-if (!is.na(fi$isdir)) {
-  err("Directory/file already exists")
-}
-
-dirs <- c(gc.path, paste(gc.path, c('cache', 'features'), sep="/"))
-for (dir in dirs) {
-  if (!dir.create(dir)) {
-    err("Could not create directory:", dir, "\nCheck permissions?")
-  }
-}
-
-################################################################################
-## Down to business
 cat("... loading required packages ...\n")
 suppressPackageStartupMessages({
-  library(GenomicFeatures)
+  library(GenomicFeaturesX)
 })
 
 start.time <- proc.time()['elapsed']
-txdb <- makeTranscriptDbFromUCSC(genome=genome, tablename=ucsc.table)
-fn <- paste('TranscriptDb', genome, anno.source, 'sqlite', sep=".")
-saveFeatures(txdb, file.path(gc.path, 'features', fn))
+createGenomicCache(genome, annotation, path=opts$parent.dir,
+                   gc.name=opts$name)
 time.taken <- proc.time()['elapsed'] - start.time
 
 cat("====== Total time taken:", time.taken, "seconds ======\n\n")

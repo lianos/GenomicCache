@@ -12,6 +12,62 @@ function(.Object, ...,
                  ...)
 })
 
+##' Create a GenomicCache object and save it to filesystem.
+##'
+##' This function could be driven from the command line via the
+##' \code{gfx-create-cache} script.
+##' 
+##' @export
+##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
+##' 
+##' @param genome The assembly of the genome to use (hg18, mm9, etc.)
+##' @param annotation Which annotation source to use (refseq, ensembl, aceview)
+##' @param path The directory to create the \code{GenomicCache} directory in.
+##' @param gc.name The name of the GenomicCache directory to create. Leave this
+##' \code{NULL} for a "reasonable" one to be generated for you.
+##' @param is.table.name Is \code{annotation} a UCSC table name (refGene, etc.)?
+##' @param table2name A named character vector the user can pass to inform the
+##' UCSC table name to "normal" name mapping. The \code{names()} are the
+##' UCSC table names, the values are the "normal" names. This can be left
+##' \code{NULL} and the default (refseq, ucsc, aceview) one will be used.
+##' @return A \code{GenomicCache} object (invisbly)
+createGenomicCache <- function(genome, annotation, path='.', gc.name=NULL,
+                               is.table.name=FALSE, table2name=NULL) {
+  table2name <- c(refGene='refseq', knownGene='ucsc', ensGene="ensembl",
+                  acembly='aceview')
+  if (is.table.name) {
+    ucsc.table <- match.arg(annotation, names(table2name))
+    annotation <- table2name[ucsc.table]
+  } else {
+    annotation <- match.arg(annotation, table2name)
+    ucsc.table <- names(table2name)[table2name == annotation]
+  }
+
+  if (is.null(gc.name)) {
+    gc.name <- paste("GenomicCache", genome, annotation, sep=".")
+  }
+  gc.path <- file.path(path, gc.name)
+  
+  ## Setup directory structure
+  fi <- file.info(gc.path)
+  if (!is.na(fi$isdir)) {
+    stop("GenomicCache directory already exists, ", gc.path)
+  }
+  
+  dirs <- c(gc.path, paste(gc.path, c('cache', 'features'), sep="/"))
+  for (dir in dirs) {
+    if (!dir.create(dir)) {
+      stop("Could not create directory:", dir, "\nCheck permissions?")
+    }
+  }
+  
+  txdb <- makeTranscriptDbFromUCSC(genome=genome, tablename=ucsc.table)
+  fn <- paste('TranscriptDb', genome, annotation, 'sqlite', sep=".")
+  saveFeatures(txdb, file.path(gc.path, 'features', fn))
+
+  invisible(GenomicCache(gc.path, pre.load=NULL))
+}
+
 GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
   if (!dir.exists(path)) {
     stop("Cannot read directory: ", path)
