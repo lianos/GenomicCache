@@ -1,3 +1,4 @@
+#' @nord
 matchGFGeneCollapse <- function(collapse, gene=NULL) {
   choices <- c('cover', 'constitutive', 'first', 'longest', 'shortest')
   if (is.numeric(collapse)) {
@@ -17,7 +18,7 @@ matchGFGeneCollapse <- function(collapse, gene=NULL) {
 ##' Returns an annotated GRanges object by "compressing" the exons
 ##' across isoforms into one prototypical / idealized version of the gene..
 ##'
-##' @param The \code{GFGene} object
+##' @param x The \code{GFGene} object
 ##' @param by How the caller wants the "idealized" gene to be calculated.
 ##' \code{all} exons? Just the coding (\code{cds}) exons? etc.
 ##' @param collapse How are the exons summarized? Is it the union of all exons

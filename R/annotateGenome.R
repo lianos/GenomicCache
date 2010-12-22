@@ -460,6 +460,10 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
 annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
                               seqlength=NA) {
   ## Calculate inferredmax-bounds by symbol
+  if (is.na(seqlength) && is(annotated, 'GRanges')) {
+    seqlength <- seqlengths(annotated)
+  }
+  
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
   key(dt) <- 'entrez.id'
   axe <- which(colnames(dt) == 'entrez.id')
@@ -496,6 +500,10 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
 
   if (flank.up + flank.down > 0 && !is.na(seqlength)) {
     bounds <- trimRangesToSeqlength(bounds, seqlength)
+  }
+
+  if (!is.na(seqlength)) {
+    seqlengths(bounds) <- seqlength
   }
   
   bounds
