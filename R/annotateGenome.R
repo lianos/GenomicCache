@@ -44,8 +44,8 @@ getAnnotatedChromosome <- function(gcache, seqnames, collapse='cover',
   collapse <- matchGFGeneCollapse(collapse)
   seqnames <- unique(as.character(seqnames))
   annotated <- lapply(seqnames, function(seqname) {
-    fn <- .annotatedChromosomeFileName(gcache, seqname, collapse, flank.up,
-                                       flank.down, stranded)
+    fn <- annotatedChromosomeFN(gcache, seqname, collapse, flank.up,
+                                flank.down, stranded)
     if (!file.exists(fn)) {
       do.try <- paste('gcache, collapse=%s, flank.up=%d, flank.down=%d,',
                       'stranded=%s, chrs=%s')
@@ -70,8 +70,8 @@ checkAnnotatedChromosomes <- function(gcache, seqnames, collapse='cover',
   collapse <- matchGFGeneCollapse(collapse)
   seqnames <- unique(as.character(seqnames))
   annotated <- lapply(seqnames, function(seqname) {
-    fn <- .annotatedChromosomeFileName(gcache, seqname, collapse, flank.up,
-                                       flank.down, stranded)
+    fn <- annotatedChromosomeFN(gcache, seqname, collapse, flank.up,
+                                flank.down, stranded)
     if (!file.exists(fn)) {
       do.try <- paste('gcache, collapse=%s, flank.up=%d, flank.down=%d,',
                       'stranded=%s, chrs=%s')
@@ -176,8 +176,8 @@ generateAnnotatedChromosomesByGenes <-
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
-        fn <- .annotatedChromosomeFileName(.gc, chr, gene.collapse, flank.up,
-                                           flank.down, stranded)
+        fn <- annotatedChromosomeFN(.gc, chr, gene.collapse, flank.up,
+                                    flank.down, stranded)
         cat("... (", chr, ") Saving to", fn, "\n")
         save(chr.anno, file=fn)
       }
