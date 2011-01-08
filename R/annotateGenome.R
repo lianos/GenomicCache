@@ -23,7 +23,7 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
 ##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param gcache \code{\linkS4class{GenomicCache}} object
 ##' @param seqnames A character vector of seqnames/chromosomes to specifying
 ##' which annotated chromosomes to get, or a \code{\linkS4class{GRanges}} object
@@ -102,7 +102,7 @@ checkAnnotatedChromosomes <- function(gcache, seqnames, collapse='cover',
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
 ##' @seealso \code{\link{getGenesOnChromosome}}
 ##' @seealso \code{\link{generateGFXGeneModels}}
-##' 
+##'
 ##' @param gcache A \code{\link{GenomicCache}} object to use as a reference
 ##' for the chromosome annotations
 ##' @param flank.up Number of base pairs upstream to extend the 5' UTR
@@ -130,7 +130,7 @@ generateAnnotatedChromosomesByGenes <-
   if (is.null(chrs)) {
     chrs <- chromosomes(gcache)
   }
-  
+
   illegal.chr <- !chrs %in% names(bsg.seqlengths)
   if (any(illegal.chr)) {
     stop("Bad chromosome names: ", paste(chrs[illegal.chr], collapse=","))
@@ -142,13 +142,13 @@ generateAnnotatedChromosomesByGenes <-
     seqlength <- bsg.seqlengths[chr]
     .gc <- duplicate(gcache, pre.load=NULL)
     on.exit(dispose(.gc))
-    
+
     genes <- tryCatch(getGenesOnChromosome(.gc, chr), error=function(e) NULL)
     if (is.null(genes)) {
       return(NULL)
     }
     entrez.id <- sapply(genes, entrezId)
-    
+
     cat("... (", chr, ") cleaning gene models\n", sep="")
     models <- lapply(genes, function(gene) {
       ## Do not include genes whose transcripts do not overlap at all
@@ -166,7 +166,7 @@ generateAnnotatedChromosomesByGenes <-
     keep <- !sapply(models, is.null)
     models <- models[keep]
     entrez.id <- entrez.id[keep]
-    
+
     if (length(models) > 0) {
       cat("... (", chr, ") annotating chromosome\n", sep="")
       st <- proc.time()['elapsed']
@@ -201,7 +201,7 @@ generateAnnotatedChromosomesByGenes <-
 ##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param gene.list list of \code{\linkS4class{GRanges}} objects, each object
 ##' in the list indicates the set of exons (across all isoforms) for a gene --
 ##' such as you might get from \code{\link{idealized}}. This can also be a
@@ -225,7 +225,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     stop("Unstranded annotation not fully functional ... look to fix code ",
          "from 'buildFlank...' onwards ...")
   }
-  
+
   ## Parameter Bureaucracy
   if (is.null(seqname)) {
     seqname <- as.character(seqnames(gene.list[[1]][1]))
@@ -233,7 +233,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   if (is.null(seqlength) || is.na(seqlength)) {
     names(seqlength) <- seqname
   }
-  
+
   if (is(gene.list, 'GRangesList')) {
     exons <- unlist(unname(gene.list))
   } else {
@@ -242,19 +242,19 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     }
     exons <- do.call(c, unname(gene.list))
   }
-  
+
   ## I am handling strand issues outside of the GRanges framework
   if (!stranded) {
     strand(exons) <- '*'
   }
   exons <- split(exons, strand(exons))
-  
+
   ## Locate intervals that are "excluively" annotated, and others that
   ## have two+ annotations on the same region.
   interval.annos <- lapply(exons, function(.exons) {
     lapply(splitRangesByOverlap(ranges(.exons)), IntervalTree)
   })
-  
+
   ## Use the "exclusive intervals" to redefine the exclusive portions of exons
   ## in each gene model by using the exclusive intervals that overlap with
   ## each genes exon.
@@ -266,7 +266,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     }
     ref.strand <- if (!stranded) '*' else as.character(strand(g.exons)[1])
     ## ref.strand <- tryCatch({
-    ##  if (!stranded) '*' else as.character(strand(g.exons)[1]) 
+    ##  if (!stranded) '*' else as.character(strand(g.exons)[1])
     ## }, error=function(e) browser())
     itree <- interval.annos[[ref.strand]]$exclusive
     mm <- matchMatrix(findOverlaps(ranges(g.exons), itree))
@@ -283,9 +283,9 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     }
     clean
   })
-  
+
   annotated <- do.call(c, clean.list)
-  
+
   ## Convert overlap regions to GRanges and combine
   overlaps <- lapply(names(interval.annos), function(istrand) {
     itree <- interval.annos[[istrand]]$overlap
@@ -301,7 +301,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     annotated <- c(annotated, overlaps)
   }
   annotated <- annotated[order(ranges(annotated))]
-  
+
   ## Annotated extended/flanking utrs. If the extended flank runs into
   ## a region that is already annotated, we only take the region that
   ## starts the flank up until the first annotation.
@@ -310,22 +310,22 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     annotated <- c(annotated, down)
     resort <- TRUE
   }
-  
+
   if (flank.up > 0) {
     up <- buildFlankAnnotation(annotated, flank.up, 'up', seqlength)
     annotated <- c(annotated, up)
     resort <- TRUE
   }
-  
+
   if (resort) {
     annotated <- annotated[order(ranges(annotated))]
     resort <- FALSE
   }
-  
+
   ## Annotate introns
   introns <- buildIntronAnnotation(annotated, stranded=stranded)
   annotated <- c(annotated, introns)
-  
+
   ## Whatever isn't marked by now must be intergenic
   intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
   annotated <- c(annotated, intergenic)
@@ -334,7 +334,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   if (length(findOverlaps(annotated, ignoreSelf=TRUE, type='any')) > 0) {
     warning("Annotation for chromosome", seqname, "is not clean", sep=" ")
   }
-  
+
   as(annotated, 'AnnotatedChromosome')
 }
 
@@ -413,7 +413,7 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
                           fix=resize.fix)
   o <- findOverlaps(unique.flanks, bounds)
   mm <- matchMatrix(o)
-  
+
   if (nrow(mm) > 0) {
     ## There will be duplicate matches here due to txbounds that overlap
     ## with eachother (think genes inside of other genes). Keep only flanks
@@ -429,7 +429,7 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
     new.flanks <- GRanges()
   }
 
-  new.flanks <- trimRangesToSeqlength(new.flanks, seqlength)  
+  new.flanks <- trimRangesToSeqlength(new.flanks, seqlength)
   new.flanks
 }
 
@@ -440,43 +440,50 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
   if (any(too.low)) {
     granges[too.low] <- 1L
   }
-  
+
   if (!is.na(seqlength)) {
     too.high <- end(granges) > seqlength
     if (any(too.high)) {
       end(granges[too.high]) <- seqlength
     }
   }
-  
+
   granges
 }
 
-##' Calculates the transcription bounds from an annotation table.
-##' 
+##' Determine the transcription bounds of annotated regions (by entrez.id).
+##'
+##' Calculates the extremes of regions annotated for a given entrez.id.
+##'
 ##' @param annotated A data.frame/data.table/AnnotatedChromsome
 ##' @param flank.up Number of bases to extend the upstream tx bound
 ##' @param flank.down Number of bases to extedn the downstream tx bound
-##' @return A \code{data.table} with the transcription bounds
+##' @return A \code{GRanges} with the transcription bounds
 annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
                               seqlength=NA) {
+  if ((inherits(annotated, 'GRanges') && length(annotated) == 0L) ||
+      (inherits(annotated, 'data.frame') && nrow(annotated) == 0L)) {
+    stop("No annotations in `annotated`")
+  }
+
   ## Calculate inferredmax-bounds by symbol
   if (is.na(seqlength) && is(annotated, 'GRanges')) {
     seqlength <- seqlengths(annotated)
   }
-  
+
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
-  key(dt) <- 'entrez.id'
+  key(dt) <- c('entrez.id', 'seqnames')
   axe <- which(colnames(dt) == 'entrez.id')
 
   ## by entrez.id, chr, strand
-  bounds <- dt[, by='entrez.id', {
+  bounds <- dt[, by=list(entrez.id, seqnames), {
     .sd <- .SD[1]
     .sd$start <- min(start)
     .sd$end <- max(end)
     .sd$exon.anno <- 'txbound'
     .sd[, -axe, with=FALSE]
   }]
-  
+
   bounds <- as(bounds, 'GRanges')
   if (flank.up > 0) {
     bounds <- resize(bounds, width=width(bounds) + flank.up, fix='end')
@@ -488,24 +495,27 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
     bounds <- bounds[order(ranges(bounds))]
   }
 
-  old.meta <- values(annotated)
-  new.meta <- resortColumns(values(bounds), values(annotated))
-  
-  for (col in colnames(old.meta)) {
-    if (is.character(old.meta[[col]])) {
-      new.meta[[col]] <- as.character(new.meta[[col]])
+  if (inherits(annotated, 'GRanges')) {
+    old.meta <- values(annotated)
+    new.meta <- resortColumns(values(bounds), values(annotated))
+
+    for (col in colnames(old.meta)) {
+      if (is.character(old.meta[[col]])) {
+        new.meta[[col]] <- as.character(new.meta[[col]])
+      }
     }
+    values(bounds) <- new.meta
   }
-  values(bounds) <- new.meta
 
   if (flank.up + flank.down > 0 && !is.na(seqlength)) {
     bounds <- trimRangesToSeqlength(bounds, seqlength)
   }
 
-  if (!is.na(seqlength)) {
+  if (!all(is.na(seqlength))) {
     seqlengths(bounds) <- seqlength
   }
-  
+
+
   bounds
 }
 
@@ -515,7 +525,7 @@ resortColumns <- function(from, to) {
   if (length(common.names) != length(colnames(to))) {
     stop("Need matching column names")
   }
-  
+
   xref <- match(colnames(to), colnames(from))
   from[, xref]
 }
@@ -540,7 +550,7 @@ resortColumns <- function(from, to) {
   if (length(Reduce(intersect, tx.bounds)) == 0) {
     return(FALSE)
   }
-  
+
   TRUE
 }
 
