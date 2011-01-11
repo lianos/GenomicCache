@@ -6,7 +6,7 @@
 ## at a time.
 
 ##' @param gc.path The path to the cache directory for the genomic cache
-annotatedChromosomeFN <- function(gc.path, chr.name, gene.collapse='cover',
+annotatedChromosomeFN <- function(gc.path, seqname, gene.collapse='cover',
                                   cds.cover='min', flank.up=1000L,
                                   flank.down=flank.up, stranded=TRUE, ...) {
   if (inherits(gc.path, 'GenomicCache')) {
@@ -15,6 +15,6 @@ annotatedChromosomeFN <- function(gc.path, chr.name, gene.collapse='cover',
   message("cds.cover parameter not used yet.")
   stranded <- if (stranded) 'stranded' else 'not-stranded'
   fn <- sprintf("%s.annotated.collapse-%s.up-%d.down-%d.%s.rda", seqname,
-                collapse, flank.up, flank.down, stranded)
+                gene.collapse, flank.up, flank.down, stranded)
   file.path(gc.path, 'annotated.chromosomes', fn)
 }

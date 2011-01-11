@@ -5,21 +5,14 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
   from
 })
 
-## NOTE: 2010-10-23 -- Integrating entrez.id into the values() of annotated
-## chromosomes. We should switch to them as the primary key instead of using
-## the gene symbol. All entrez.id in here stuff hasn't been tested yet.
-.annotatedChromosomeFileName <- function(gcache, seqname, collapse, flank.up,
-                                         flank.down, stranded) {
-  stranded <- if (stranded) 'stranded' else 'not-stranded'
-  fn <- sprintf("%s.annotated.collapse-%s.up-%d.down-%d.%s.rda", seqname,
-                collapse, flank.up, flank.down, stranded)
-  file.path(cacheDir(gcache), 'annotated.chromosomes', fn)
-}
-
 ##' Returns the annotated chromosome object from the given parameters.
 ##'
 ##' If the file has not been built, an error will be thrown prompting the
 ##' caller to genereate this file first.
+##'
+##' NOTE: 2010-10-23 -- Integrating entrez.id into the values() of annotated
+##' chromosomes. We should switch to them as the primary key instead of using
+##' the gene symbol. All entrez.id in here stuff hasn't been tested yet.
 ##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
@@ -35,24 +28,24 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
 ##' desired
 ##'
 ##' @return An \code{\linkS4class{AnnotatedChromosome}} object
-getAnnotatedChromosome <- function(gcache, seqnames, collapse='cover',
+getAnnotatedChromosome <- function(gcache, seqnames, gene.collapse='cover',
                                    flank.up=1000L, flank.down=1000L,
                                    stranded=TRUE) {
   if (inherits(seqnames, 'GRanges')) {
     seqnames <- as.character(seqnames(seqnames))
   }
-  collapse <- matchGFGeneCollapse(collapse)
+  gene.collapse <- matchGFGeneCollapse(gene.collapse)
   seqnames <- unique(as.character(seqnames))
   annotated <- lapply(seqnames, function(seqname) {
-    fn <- annotatedChromosomeFN(gcache, seqname, collapse, flank.up,
-                                flank.down, stranded)
+    fn <- annotatedChromosomeFN(gcache, seqname, gene.collapse, flank.up=flank.up,
+                                flank.down=flank.down, stranded=stranded)
     if (!file.exists(fn)) {
       do.try <- paste('gcache, collapse=%s, flank.up=%d, flank.down=%d,',
                       'stranded=%s, chrs=%s')
-      do.try <- sprintf(do.try, collapse, flank.up, flank.down, stranded,
+      do.try <- sprintf(do.try, gene.collapse, flank.up, flank.down, stranded,
                         seqname)
       stop(basename(fn), " file not found. Generate it first via:\n",
-           sprintf('  annotateChromosomeByGenes(%s, ...)', v))
+           sprintf('  annotateChromosomeByGenes(%s, ...)', do.try))
     }
     var.name <- load(fn)
     anno <- get(var.name, inherits=FALSE)
