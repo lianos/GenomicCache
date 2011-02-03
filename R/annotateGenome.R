@@ -5,6 +5,24 @@ setAs("GRanges", "AnnotatedChromosome", function(from) {
   from
 })
 
+setValidity("AnnotatedChromosome", function(object) {
+  errs <- character()
+  expected.meta <- c('exon.anno', 'symbol', 'entrez.id')
+  meta <- values(object)
+  is.missing <- !expected.meta %in% colnames(meta)
+  if (any(is.missing)) {
+    errs <- sprintf("Annotation columns missing: %s",
+                    paste(expected.meta[is.missing], collapse=","))
+  }
+
+  if (length(errs) == 0L) {
+    TRUE
+  } else {
+    errs
+  }
+
+})
+
 ##' Returns the annotated chromosome object from the given parameters.
 ##'
 ##' If the file has not been built, an error will be thrown prompting the
@@ -466,7 +484,6 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
 
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
   key(dt) <- c('entrez.id', 'seqnames')
-  axe <- which(colnames(dt) == 'entrez.id')
 
   ## by entrez.id, chr, strand
   bounds <- dt[, by=list(entrez.id, seqnames), {
@@ -474,7 +491,7 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
     .sd$start <- min(start)
     .sd$end <- max(end)
     .sd$exon.anno <- 'txbound'
-    .sd[, -axe, with=FALSE]
+    .sd
   }]
 
   bounds <- as(bounds, 'GRanges')
@@ -507,7 +524,6 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
   if (!all(is.na(seqlength))) {
     seqlengths(bounds) <- seqlength
   }
-
 
   bounds
 }
