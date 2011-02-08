@@ -18,3 +18,12 @@ annotatedChromosomeFN <- function(gc.path, seqname, gene.collapse='cover',
                 gene.collapse, flank.up, flank.down, stranded)
   file.path(gc.path, 'annotated.chromosomes', fn)
 }
+
+internalPrimingCacheFN <- function(gc.path, seqname, window, strand) {
+  if (inherits(gc.path, 'GenomicCache')) {
+    gc.path <- cacheDir(gc.path)
+  }
+  strand <- if (strand == '-') 'rev' else 'fwd'
+  fp <- file.path(gc.path, 'internal.priming', window)
+  file.path(fp, paste(seqname, strand, "rda", sep="."))
+}
