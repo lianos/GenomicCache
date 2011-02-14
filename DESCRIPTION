@@ -11,7 +11,7 @@ Depends: GenomicFeatures (>= 1.1.11), GenomicRanges (>= 1.2.1)
 Imports: methods, DBI (>= 0.2-5), RSQLite (>= 0.8-1), IRanges, GenomicRanges,
          Biostrings (>= 2.17.6), rtracklayer (>= 1.7.11), biomaRt, RCurl,
          AnnotationDbi, annotate, utils, plyr, ggplot2, foreach,
-         data.table (>= 1.5.2), ShortRead
+         data.table (>= 1.5.2), ShortRead, rtracklayer
 Suggests: testthat (>= 0.3),
           optparse (>= 0.9.1),
           org.Hs.eg.db,
