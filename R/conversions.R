@@ -13,35 +13,57 @@ setAs("IRanges", "data.table", function(from) {
 })
 
 setAs("data.table", "GRanges", function(from) {
+  as(as.data.frame(from), "GRanges")
+})
+
+setAs("data.frame", "GRanges", function(from) {
   if (nrow(from) == 0L || all(is.na(from))) {
     return(GRanges())
   }
-  if (!all(c('seqnames', 'start', 'end') %in% colnames(from))) {
-    stop("seqnames, start, end required")
+  if (!'seqnames' %in% colnames(from)) {
+    stop("seqnames required")
   }
-  .strand <- if ('strand' %in% colnames(from)) from$strand else '*'
-  gr <- GRanges(seqnames=from$seqnames, ranges=IRanges(from$start, from$end),
-                strand=.strand)
-  gr.colnames <- c('seqnames', 'start', 'end', 'strand', 'width')
-  meta.cols <- colnames(from)[!colnames(from) %in% gr.colnames]
-  if (length(meta.cols) > 0) {
-    values(gr) <- DataFrame(from[, meta.cols, with=FALSE])
-  }
+  gr.meta.take <- colnames(from) %in% c('seqnames', 'strand')
+  gr.meta <- from[, gr.meta.take, drop=FALSE]
+  from <- from[, !gr.meta.take, drop=FALSE]
+
+  .ranges <- as(from, 'IRanges')
+  DF <- elementMetadata(.ranges)
+  elementMetadata(.ranges) <- NULL
+
+  .strand <- if ('strand' %in% colnames(gr.meta)) gr.meta$strand else '*'
+  gr <- GRanges(seqnames=gr.meta$seqnames, ranges=.ranges, strand=.strand)
+  values(gr) <- DF
   gr
 })
 
 setAs("data.table", "IRanges", function(from) {
-  if (nrow(from) == 0L || all(is.na(from))) {  
+  as(as.data.frame(from), "IRanges")
+})
+
+setAs("data.frame", "IRanges", function(from) {
+  if (nrow(from) == 0L || all(is.na(from))) {
     return(IRanges())
   }
-  if (!all(c('start', 'end') %in% colnames(from))) {
-    stop("seqnames, start, end required")
+  need <- c('start', 'end', 'width')
+  have <- colnames(from)[colnames(from) %in% need]
+  if (length(have) < 2) {
+    stop("Need any two of 'start', 'end', or 'width'")
   }
-  ir <- IRanges(from$start, from$end)
-  ir.colnames <- c('start', 'end', 'width')
-  meta.cols <- colnames(from)[!colnames(from) %in% ir.colnames]
+  ## prefer start/end
+  if (all(c('start', 'end') %in% have)) {
+    iranges <- IRanges(from$start, from$end)
+  } else {
+    iranges <- do.call(IRanges, as.list(from[, have]))
+  }
+
+  meta.cols <- setdiff(colnames(from), have)
+
   if (length(meta.cols) > 0) {
-    values(ir) <- DataFrame(from[, meta.cols, with=FALSE])
+    DF <- DataFrame(from[, meta.cols, drop=FALSE])
+    colnames(DF) <- meta.cols
+    values(iranges) <- DF
   }
-  ir
+
+  iranges
 })

@@ -479,6 +479,9 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
 ##'
 ##' Calculates the extremes of regions annotated for a given entrez.id.
 ##'
+##' This function assumes that all ranges in \code{annotated} are on the
+##' same chromosome.
+##'
 ##' @param annotated A data.frame/data.table/AnnotatedChromsome
 ##' @param flank.up Number of bases to extend the upstream tx bound
 ##' @param flank.down Number of bases to extedn the downstream tx bound
