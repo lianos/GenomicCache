@@ -8,6 +8,10 @@ importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
 importFrom(ShortRead, id, chromosome)
 
+importClassesFrom(rtracklayer, BigWigSelection)
+importMethodsFrom(rtracklayer, import.bw, export.bw)
+importFrom(rtracklayer, BigWigSelection)
+
 importFrom(annotate,
            getAnnMap,
            dataSource
@@ -19,7 +23,8 @@ exportClasses(GenomicCache,
               EnsemblGene,
               AceviewGene,
               UcscGene,
-              AnnotatedChromosome
+              AnnotatedChromosome,
+              BigWigFile
 )
 
 exportMethods(duplicate,
@@ -70,6 +75,9 @@ exportMethods(duplicate,
               ## uniqueness
               flagUniqueRanges,
               getUniquenessMap
+
+              ## Defined elsewhere
+              # "["
 )
 
 export(
@@ -81,6 +89,7 @@ export(
        generateAnnotatedChromosomesByGenes,
        annotateChromosome,
        annotatedTxBounds,
+       getInternalPrimingScores,
 
        ## GappedRAnges
        GappedRanges,
@@ -94,6 +103,9 @@ export(
        generateGFXGeneModels,
        id2symbol,
        getAnnoPackageName,
+
+       # BigWig Support
+       BigWigFile,
 
        ## utilities
        na.logical,
