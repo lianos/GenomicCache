@@ -16,10 +16,10 @@ function(.Object, ...,
 ##'
 ##' This function could be driven from the command line via the
 ##' \code{gfx-create-cache} script.
-##' 
+##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param genome The assembly of the genome to use (hg18, mm9, etc.)
 ##' @param annotation Which annotation source to use (refseq, ensembl, aceview)
 ##' @param path The directory to create the \code{GenomicCache} directory in.
@@ -47,20 +47,20 @@ createGenomicCache <- function(genome, annotation, path='.', gc.name=NULL,
     gc.name <- paste("GenomicCache", genome, annotation, sep=".")
   }
   gc.path <- file.path(path, gc.name)
-  
+
   ## Setup directory structure
   fi <- file.info(gc.path)
   if (!is.na(fi$isdir)) {
     stop("GenomicCache directory already exists, ", gc.path)
   }
-  
+
   dirs <- c(gc.path, paste(gc.path, c('cache', 'features'), sep="/"))
   for (dir in dirs) {
     if (!dir.create(dir)) {
       stop("Could not create directory:", dir, "\nCheck permissions?")
     }
   }
-  
+
   txdb <- makeTranscriptDbFromUCSC(genome=genome, tablename=ucsc.table)
   fn <- paste('TranscriptDb', genome, annotation, 'sqlite', sep=".")
   saveFeatures(txdb, file.path(gc.path, 'features', fn))
@@ -72,11 +72,11 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
   if (!dir.exists(path)) {
     stop("Cannot read directory: ", path)
   }
-  features.path <- file.path(path, 'features') 
+  features.path <- file.path(path, 'features')
   if (!dir.exists(features.path)) {
     stop("Invalid GenomicCache directory -- no 'features' subdirectory found.")
   }
-  
+
   ## Get the TranscriptDb object
   txdb.path <- list.files(features.path, 'TranscriptDb', ignore.case=TRUE,
                           full.names=TRUE)
@@ -86,14 +86,14 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
   }
   txdb <- loadFeatures(txdb.path)
   attr(txdb, 'path') <- txdb.path
-  
+
   genome <- subset(metadata(txdb), name == "Genome")$value
-  
+
   gc <- new('GenomicCache',
             .genome=genome,
             .path=path,
             .txdb=txdb)
-  
+
   ## Preload objects
   can.load <- c('transcripts', 'exons', 'utr3', 'utr5')
   for (what in pre.load) {
@@ -101,7 +101,7 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
     cat("Preloading", what, "...\n")
     getFunction(what)(gc)
   }
-  
+
   gc
 }
 
@@ -119,7 +119,7 @@ id2symbol <- function(x, ids=NULL) {
     ids <- GenomicFeatures:::dbEasyQuery(GenomicFeatures:::txdbConn(x), SQL)
     ids <- ids$gene_id
   }
-  
+
   symbols <- getSymbolFromEntrezId(x, ids, rm.unknown=FALSE)
   data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
 }
@@ -149,6 +149,10 @@ function(x, ...) {
 setMethod("seqnames", c(x="GenomicCache"),
 function(x) {
   seqnames(x@.txdb)
+})
+
+setMethod("seqlengths", c(x="GenomicCache"), function(x) {
+  seqlengths(txdb(x))
 })
 
 setMethod("chromosomes", c(x="GenomicCache"),
@@ -215,7 +219,7 @@ function(x, by, use.names, flank.up=1000, flank.down=1000, ...) {
   if (by == 'tx') {
     utrs <- fiveUTRsByTranscript(x, use.names, ...)
   } else {
-    
+
   }
   if (flank.up != 0) {
     utrs <- endoapply(utrs, function(x) {
@@ -227,7 +231,7 @@ function(x, by, use.names, flank.up=1000, flank.down=1000, ...) {
       resize(x, width=width(x) + flank.down, fix='end')
     })
   }
-  
+
   utrs
 })
 
@@ -244,7 +248,7 @@ function(x, by, use.names, flank.up=100, flank.down=1000, ...) {
   if (by == 'tx') {
     utrs <- threeUTRsByTranscript(x, use.names, ...)
   } else {
-    
+
   }
 
   ## These endoapply's take way too long
@@ -258,7 +262,7 @@ function(x, by, use.names, flank.up=100, flank.down=1000, ...) {
   ##     resize(x, width=width(x) + flank.down, fix='end')
   ##   })
   ## }
-  
+
   utrs
 })
 

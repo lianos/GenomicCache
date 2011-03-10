@@ -39,8 +39,10 @@ addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
 ## ~ 8.3 hours for Ensembl hg18
 generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
                                   gene.cds.cover='min', chromosomes=NULL,
-                                  flank.up=c(0, 500, 1000),
-                                  flank.down=c(0, 500, 1000), verbose=FALSE) {
+                                  ## flank.up=c(0, 500, 1000),
+                                  ## flank.down=c(0, 500, 1000),
+                                  flank.up=0L, flank.down=0L,
+                                  verbose=FALSE) {
   if (!require(plyr)) stop("Plyr is used here")
   cache.dir <- cacheDir(gcache, 'gene.models')
   if (!dir.exists(cache.dir)) {
@@ -49,7 +51,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
       stop("Error creating directory")
     }
   }
-  
+
   if (is.null(chromosomes)) {
     chromosomes <- seqnames(gcache)
   }
@@ -88,19 +90,19 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
         }
         g
       })
-      
+
       genes <- genes[!sapply(genes, is.null)]
       if (length(genes) > 0) {
         names(genes) <- make.unique(sapply(genes, symbol))
       }
     }
-    
+
     cat("...", chr, "done\n")
     save(genes, file=file.path(cache.dir, .geneCacheFileName(.gc, chr)))
     dispose(.gc)
     chr
   }
-  
+
 }
 
 ## NOTE: genesOnChromosome is not done
@@ -113,7 +115,7 @@ function(x, chromosome, start, end, maxgap, minoverlap, overlap.type,
     if (is.null(genes)) {
       stop("Build the gene models first!")
     }
-    
+
     if (!is.null(start) || !is.null(end)) {
       ## NOTE: This is poorly implemented
       if (is.null(start)) {
@@ -128,7 +130,7 @@ function(x, chromosome, start, end, maxgap, minoverlap, overlap.type,
                         minoverlap=minoverlap, type=overlap.type)
       genes <- genes[queryHits(o)]
     }
-    
+
     return(genes)
   } else {
     stop("getGenesOnChromosome w/o cache not implemented yet.")
