@@ -5,7 +5,7 @@
 ##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param path The path to the directory to check.
 ##' @param create A logical indicating whether or not the directory should be
 ##' created if it doesn't exist
@@ -28,10 +28,10 @@ checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE) {
 }
 
 ##' Convenience method to sets \code{NA}'s in a logical vector to \code{FALSE}.
-##' 
+##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param the.logical A logical vector/Rle
 ##' @return A \code{logical} with \code{NA} values set to \code{FALSE}
 na.logical <- function(the.logical) {
@@ -72,7 +72,7 @@ convert.na <- function(wut, to=".defaults.") {
       wut[[idx]] <- convert.na(wut[[idx]], to=to)
     }
   }
-  
+
   wut
 }
 
@@ -93,7 +93,7 @@ checkVerbose <- function(...) {
 }
 
 ## Loads one item from the rda file. if what is null, it will
-## load the first item 
+## load the first item
 load.it <- function(rda.file, what=NULL) {
   if (!file.exists(rda.file)) {
     stop("Can't find data file ", rda.file)
@@ -113,11 +113,11 @@ load.it <- function(rda.file, what=NULL) {
 }
 
 ##' Returns the bioconductor annoation package name for the given genome.
-##' 
+##'
 ##' @param from A character string naming the genome, ie. hg18, mm9, etc.
 ##' The function also checks to see if it is the name of the package itself.
 ##' @param package Passed through to the \code{\link{annotationPackage}}
-##' function. 
+##' function.
 getAnnoPackageName <- function(from, package=NULL) {
   is.anno.package <- length(grep('^org\\..*\\.db$', from) == 1L)
   if (is.anno.package) {
@@ -134,8 +134,7 @@ getAnnoPackageName <- function(from, package=NULL) {
 
 dir.exists <- function(path) {
   path <- as.character(path)
-  info <- file.info(path)
-  !is.na(info$isdir) && info$isdir
+  !is.na(file.info(path)$isdir) && file.info(path)$isdir
 }
 
 assert.dir.exists <- function(path) {
@@ -144,7 +143,7 @@ assert.dir.exists <- function(path) {
 
 ##' Returns an object of type \code{type} from a list, this is most useful
 ##' when \code{the.list} has one object of \code{type} in it.
-##' 
+##'
 ##' Primarily used to get arguments out of function calls with \code{(...)}
 ##' assumes tha
 ##'
@@ -154,7 +153,7 @@ takeFromListByType <- function(the.list, type, multi=FALSE, index=FALSE) {
   if (length(take) == 0L) {
     return(NULL)
   }
-  
+
   if (length(take) > 1) {
     if (is.logical(multi[1])) {
       if (!multi) {
