@@ -36,6 +36,7 @@ exportMethods(duplicate,
               dispose,
               getBsGenome,
               chromosomes,
+              neighbors,
 
               ## GFGene specific
               chromosome,
