@@ -3,7 +3,7 @@ setClassUnion("MaybeTranscriptDb", c('TranscriptDb', 'NULL'))
 ##' A virtual class for annotation objects/tracks to extend
 ##'
 ##' @exportClass GenomicFeaturesX
-##' 
+##'
 ##' @slot .genome The genome abbreviation (hg18, etc.) this
 ##' \code{GenomicFeatureX} is annotted against.
 ##' @slot .cache An \code{environment} to hold calculated objects for quick
@@ -21,7 +21,7 @@ setClass("GenomicFeaturesX",
 ##' This will minimally have a \code{\link{TranscriptDb}} object.
 ##'
 ##' @exportClass GenomicCache
-##' 
+##'
 ##' @slot .path The absolute path the parent directory of the container
 ##' @slot .txdb The \code{link{TranscriptDb}} object for the genome.
 setClass("GenomicCache",
@@ -37,7 +37,7 @@ setClass("GenomicCache",
 ##' bounds, etc.
 ##'
 ##' @exportClass GFGene
-##' 
+##'
 ##' @slot .id The gene id (primary key) in the \code{\link{TranscriptDb}}
 ##' @slot .entrez.id The entrez id for the gene
 ##' @slot .symbol The hgnc gene symbol
@@ -99,10 +99,10 @@ setClass("UcscGene", contains=c("GFGene"))
 ##' are created given the \code{\linkS4class{GenomicCache}}, and the desired
 ##' length of the flanking regions around the annotated transcription start/stop
 ##' boundaries given.
-##' 
+##'
 ##' @exportClass AnnotatedChromosome
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 setClass('AnnotatedChromosome', contains=c("GRanges"))
 
 ################################################################################
@@ -140,7 +140,8 @@ function(x, package=NULL) {
   package
 })
 
-setGeneric("genome", function(x, ...) standardGeneric("genome"))
+## imported from rtracklayer
+## setGeneric("genome", function(x, ...) standardGeneric("genome"))
 
 setGeneric("cacheFetch", function(x, what, expr, force.eval=FALSE) {
   standardGeneric("cacheFetch")

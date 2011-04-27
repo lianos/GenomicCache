@@ -1,6 +1,7 @@
 import(IRanges)
 import(GenomicRanges)
 import(GenomicFeatures)
+import(rtracklayer)
 import(data.table)
 
 importFrom(RSQLite, sqliteCloseConnection, dbGetPreparedQuery)
@@ -8,14 +9,15 @@ importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
 importFrom(ShortRead, id, chromosome)
 
-importClassesFrom(rtracklayer, BigWigSelection)
-importMethodsFrom(rtracklayer, import.bw, export.bw)
-importFrom(rtracklayer, BigWigSelection)
+## importClassesFrom(rtracklayer, BigWigSelection)
+## importMethodsFrom(rtracklayer, import.bw, export.bw, genome)
+## importFrom(rtracklayer, BigWigSelection)
 
 importFrom(annotate,
            getAnnMap,
            dataSource
 )
+
 
 exportClasses(GenomicCache,
               GFGene,

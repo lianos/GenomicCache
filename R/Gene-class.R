@@ -57,14 +57,14 @@ function(.Object, ...,
 }
 
 ##' Create a Gene object.
-##' 
+##'
 ##' This requires the use of a \code{\linkS4class{GenomicCache}} object
 ##' passed into \code{.gc}, which is, for convenience, automatically "pulled
 ##' out" from the argument list (\code{...}) if not explicitly passed.
 ##'
 ##' @export
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param ... The symbol, entrez id, transcript id, or gene id of the Gene,
 ##' optionally prefixed with what it is. For example,
 ##' \code{GFGene(symbol="DICER1", gcr)} or \code{GFGene("DICER1", gcr)} both
@@ -84,25 +84,25 @@ GFGene <- function(..., .gc=NULL) {
       stop("GenomicCache (.gc) object expected.")
     }
   }
-  
+
   anno.source <- annotationSource(.gc)
   class.name <- switch(anno.source, refGene="RefSeqGene",
                        ensGene="EnsemblGene", acembly="AceviewGene",
                        knownGene="UcscGene",
                        stop("Unknown source: ", anno.source))
   genome <- genome(.gc)
-  
+
   id <- takeFromListByType(args, 'character', index=TRUE)
   if (is.null(id)) {
     stop("No gene name/id passed")
   }
-  
+
   id.type <- names(args)[id]
   id <- args[[id]]
   if (is.null(id.type)) {
     id.type <- .guessGeneIdType(id, anno.source)
   }
-  
+
   ## Necessary monkey business to "do the right thing" in order to get
   ## the correct entrez.id and symbol for this gene
   symbol <- NULL
@@ -133,18 +133,18 @@ GFGene <- function(..., .gc=NULL) {
   if (is.null(entrez.id) || length(entrez.id) == 0) {
     stop("Unknown gene identifier: ", id, " (is it a ", id.type, "?)")
   }
-  
+
   if (is.null(symbol)) {
     symbol <- getSymbolFromEntrezId(.gc, entrez.id, anno.source)
   }
-  
+
   if (is.null(gene.id)) {
     gene.id <- switch(anno.source, refGene=symbol,
                       ensGene=getGeneIdFromEntrezId(.gc, entrez.id),
                       knownGene=symbol, acembly=symbol,
                       stop("Unknown anno.source"))
   }
-  
+
   .exons <- exonsBy(.gc, 'tx')
   .transcripts <- transcripts(.gc)
 
@@ -158,13 +158,13 @@ GFGene <- function(..., .gc=NULL) {
     if (length(take) == 0) {
       stop("Can not find transcripts in Aceview")
     }
-    xcripts <- .transcripts[take]      
+    xcripts <- .transcripts[take]
   }
-  
+
   xm <- values(xcripts)
   tx.ids <- as.character(xm$tx_id)
   meta <- DataFrame(tx_name=xm$tx_name)
-  
+
   ## Errors fly when you try to index a GRangesList with a multiple keys, and
   ## one of which isn't present. This is why I lapply of the tx.ids instead
   ## of cdsBy(.gd, 'tx)[tx.ids]. This results in an empty GRanges object in the
@@ -179,16 +179,16 @@ GFGene <- function(..., .gc=NULL) {
     names(x) <- idxs
     x
   }
-  
+
   g.exons <- .exons[tx.ids]
   values(g.exons) <- meta
-  
+
   g.cds <- take(cdsBy(.gc, 'tx'), tx.ids)
   values(g.cds) <- meta
-  
+
   g.utr5 <- take(fiveUTRsByTranscript(.gc), tx.ids)
   values(g.utr5) <- meta
-  
+
   g.utr3 <- take(threeUTRsByTranscript(.gc), tx.ids)
   values(g.utr3) <- meta
 
@@ -213,7 +213,7 @@ function(object) {
                     kno="UCSC", "unknown source")
   xcripts <- transcripts(object)
   meta <- values(xcripts)
-  
+
   cat(sprintf("%s|%s [%s]: %d transcripts\n",
               symbol(object), entrezId(object), asource,
               length(xcripts)))
@@ -226,7 +226,7 @@ function(object) {
     cat(format(start(bounds), big.mark=","), "-", sep="")
     cat(format(end(bounds), big.mark=","), "\n")
   }
-  
+
 })
 
 setMethod("length", c(x="GFGene"),
@@ -312,6 +312,7 @@ function(x, which.chr=NULL, ...) {
   sapply(cds(x, which.chr=which.chr, ...), function(exons) length(exons) > 0)
 })
 
+##' @importFrom ShortRead id
 setMethod("genome", c(x="GFGene"),
 function(x, ...) {
   x@.genome
@@ -323,7 +324,7 @@ function(x, ...) {
 })
 
 ##' @importFrom ShortRead chromosome
-setMethod("chromosome", c(object="GFGene"), 
+setMethod("chromosome", c(object="GFGene"),
 function(object, as.DNAString=FALSE, unmasked=TRUE, which.chr=NULL, ...) {
   chr <- as.character(object@.chromosome)
   if (as.DNAString) {
