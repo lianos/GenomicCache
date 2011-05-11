@@ -43,7 +43,6 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
                                   ## flank.down=c(0, 500, 1000),
                                   flank.up=0L, flank.down=0L,
                                   verbose=FALSE) {
-  if (!require(plyr)) stop("Plyr is used here")
   cache.dir <- cacheDir(gcache, 'gene.models')
   if (!dir.exists(cache.dir)) {
     cat("Making cache directory:", cache.dir, "\n")

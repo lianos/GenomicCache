@@ -47,7 +47,7 @@ setValidity("AnnotatedChromosome", function(object) {
 ##'
 ##' @return An \code{\linkS4class{AnnotatedChromosome}} object
 getAnnotatedChromosome <- function(gcache, seqnames, gene.collapse='longest',
-                                   flank.up=1000L, flank.down=1000L,
+                                   flank.up=1000L, flank.down=flank.up,
                                    stranded=TRUE) {
   if (inherits(seqnames, 'GRanges')) {
     seqnames <- as.character(seqnames(seqnames))
@@ -69,7 +69,7 @@ getAnnotatedChromosome <- function(gcache, seqnames, gene.collapse='longest',
     anno <- get(var.name, inherits=FALSE)
     as(anno, 'AnnotatedChromosome')
   })
-  do.call(c, unname(annotated))
+  suppressWarnings(do.call(c, unname(annotated)))
 }
 
 getAnnotatedGenome <- function(gcache, gene.collapse='longest', flank.up=1000L,
