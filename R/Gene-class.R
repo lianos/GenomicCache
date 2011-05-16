@@ -312,7 +312,7 @@ function(x, which.chr=NULL, ...) {
   sapply(cds(x, which.chr=which.chr, ...), function(exons) length(exons) > 0)
 })
 
-##' @importFrom ShortRead id
+##' @importFrom rtracklayer genome
 setMethod("genome", c(x="GFGene"),
 function(x, ...) {
   x@.genome
