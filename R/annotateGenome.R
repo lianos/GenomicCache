@@ -73,7 +73,7 @@ getAnnotatedChromosome <- function(gcache, seqnames, gene.collapse='longest',
 }
 
 getAnnotatedGenome <- function(gcache, gene.collapse='longest', flank.up=1000L,
-                               flank.down=1000L, stranded=TRUE) {
+                               flank.down=flank.up, stranded=TRUE) {
   gene.collapse <- matchGFGeneCollapse(gene.collapse)
   annotated <- lapply(seqnames(gcache), function(seqname) {
     fn <- annotatedChromosomeFN(gcache, seqname, gene.collapse, flank.up=flank.up,
@@ -81,38 +81,53 @@ getAnnotatedGenome <- function(gcache, gene.collapse='longest', flank.up=1000L,
     if (file.exists(fn)) load.it(fn) else NULL
   })
   annotated <- annotated[!sapply(annotated, is.null)]
+  if (length(annotated) == 0L) {
+    stop("No annotated chromoomes found")
+  }
   suppressWarnings(annotated <- do.call(c, unname(annotated)))
   as(annotated, 'AnnotatedChromosome')
 }
 
-checkAnnotatedChromosomes <- function(gcache, seqnames, collapse='cover',
-                                      flank.up=1000L, flank.down=1000L,
-                                      stranded=TRUE) {
-  if (inherits(seqnames, 'GRanges')) {
-    seqnames <- as.character(seqnames(seqnames))
+isValidAnnotatedGenome <- function(x, gene.collapse='cover',
+                                   flank.up=1000L, flank.down=1000L,
+                                   stranded=TRUE) {
+  if (is(x, 'AnnotatedChromosome')) {
+    anno <- x
+  } else if (inhertis(x, 'GenomicCache')) {
+    anno <- getAnnotatedGenome(x, gene.collapse=gene.collapse,
+                               flank.up=flank.up, flank.down=flank.down,
+                               stranded=stranded)
   }
-  collapse <- matchGFGeneCollapse(collapse)
-  seqnames <- unique(as.character(seqnames))
-  annotated <- lapply(seqnames, function(seqname) {
-    fn <- annotatedChromosomeFN(gcache, seqname, collapse, flank.up,
-                                flank.down, stranded)
-    if (!file.exists(fn)) {
-      do.try <- paste('gcache, collapse=%s, flank.up=%d, flank.down=%d,',
-                      'stranded=%s, chrs=%s')
-      do.try <- sprintf(do.try, collapse, flank.up, flank.down, stranded,
-                        seqname)
-      stop(basename(fn), " file not found. Generate it first via:\n",
-           sprintf('  annotateChromosomeByGenes(%s, ...)', v))
-    }
-    var.name <- load(fn)
-    anno <- get(var.name, inherits=FALSE)
-    cat(seqname, "...\n")
-    o <- findOverlaps(anno, ignoreSelf=TRUE, type='any')
-    if (length(o) != 0) {
-      cat("... overlapping annotations!\n")
-    }
-    seqname
-  })
+
+  errs <- character()
+
+  ##############################################################################
+  ## Check for overlapping annotations
+  o <- findOverlaps(anno, ignoreSelf=TRUE, type='any')
+  if (length(o) > 0) {
+    errs <- c(errs, "overlapping annotations exist")
+  }
+
+  ###############################################################################
+  ## Check that there is a max of 1 utr3* and utr5* for entrez.id
+  ag.dt <- as(anno, 'data.table')
+  key(ag.dt) <- c('entrez.id')
+  n.ext <- ag.dt[, list(utr5e=sum(exon.anno == 'utr5*'),
+                        utr3e=sum(exon.anno == 'utr3*')),
+                 by=entrez.id]
+  if (any(n.ext$utr5e > 1)) {
+    errs <- c(errs, "utr5* annotations are not consistent")
+  }
+  if (any(n.ext$utr3e > 1)) {
+    errs <- c(errs, "utr3* annotations are not consistent")
+  }
+
+  if (length(errs) > 0) {
+    ## cat(paste(errs, collapse="\n"))
+    return(errs)
+  } else {
+    return(TRUE)
+  }
 }
 
 ##' The crank that turns the annotateChromosome function over the chromosomes

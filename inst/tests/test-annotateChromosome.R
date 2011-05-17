@@ -45,7 +45,7 @@ test_that("No regions on annotated chromosome overlap", {
 })
 
 test_that("Chromosome is annotated", {
-  
+
 })
 
 test_that("overlaps do not overlap with eachother, or other annotations ..", {
@@ -55,6 +55,8 @@ test_that("overlaps do not overlap with eachother, or other annotations ..", {
   ##   o <- findOverlaps(ranges(so), ignoreSelf=TRUE, type='any')
   ##   expect_that(length(o), equals(0L),
   ##               info="overlap annotations do not overlap")
-    
+
   ## }
 })
+
+
