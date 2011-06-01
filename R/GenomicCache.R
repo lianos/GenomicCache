@@ -148,11 +148,21 @@ function(x, ...) {
 
 setMethod("seqnames", c(x="GenomicCache"),
 function(x) {
-  seqnames(x@.txdb)
+  seqlevels(txdb(x))
 })
 
 setMethod("seqlengths", c(x="GenomicCache"), function(x) {
   seqlengths(txdb(x))
+})
+
+setMethod('seqlevels', c(x="GenomicCache"),
+function(x) {
+  seqlevels(txdb(x))
+})
+
+setMethod("seqinfo", c(x="GenomicCache"),
+function(x) {
+  seqinfo(txdb(x))
 })
 
 setMethod("chromosomes", c(x="GenomicCache"),
