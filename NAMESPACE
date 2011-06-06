@@ -39,6 +39,9 @@ exportMethods(duplicate,
               getBsGenome,
               chromosomes,
               neighbors,
+              
+              ## I/GRanges stuff
+              subset,
 
               ## GFGene specific
               chromosome,

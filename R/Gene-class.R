@@ -151,15 +151,15 @@ GFGene <- function(..., .gc=NULL) {
   ## Get all transcript IDs associated with this gene
   if (class.name != 'AceviewGene') {
     tx.name <- getTranscriptIdFromEntrezId(.gc, entrez.id, anno.source)
-    xcripts <- subset(.transcripts, values(.transcripts)$tx_name %in% tx.name)
+    tx.take <- which(values(.transcripts)$tx_name %in% tx.name)
   } else {
     tx.names <- values(.transcripts)$tx_name
-    take <- grep(sprintf('%s\\.', symbol), tx.names, ignore.case=TRUE)
-    if (length(take) == 0) {
-      stop("Can not find transcripts in Aceview")
-    }
-    xcripts <- .transcripts[take]
+    tx.take <- grep(sprintf('%s\\.', symbol), tx.names, ignore.case=TRUE)
   }
+  if (length(tx.take) == 0) {
+    stop("Can not find transcripts in TranscriptDb")
+  }
+  xcripts <- .transcripts[tx.take]
 
   xm <- values(xcripts)
   tx.ids <- as.character(xm$tx_id)
