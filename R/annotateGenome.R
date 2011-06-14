@@ -75,6 +75,13 @@ getAnnotatedChromosome <- function(gcache, seqnames, gene.collapse='longest',
 getAnnotatedGenome <- function(gcache, gene.collapse='longest', flank.up=1000L,
                                flank.down=flank.up, stranded=TRUE) {
   gene.collapse <- matchGFGeneCollapse(gene.collapse)
+  genome.file <- annotatedGenomeFN(gcache, gene.collapse, flank.up=flank.up,
+                                   flank.down=flank.down, stranded=stranded)
+  if (file.exists(genome.file)) {
+    return(load.it(genome.file))
+  }
+
+  ## The genome file isn't there, try loading it one chromosome at a time
   annotated <- lapply(seqnames(gcache), function(seqname) {
     fn <- annotatedChromosomeFN(gcache, seqname, gene.collapse, flank.up=flank.up,
                                 flank.down=flank.down, stranded=stranded)
@@ -158,7 +165,7 @@ isValidAnnotatedGenome <- function(x, gene.collapse='cover',
 generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
-           chrs=NULL, do.save=TRUE, return.anno=NULL, ...) {
+           chrs=NULL, do.save=TRUE, return.anno=TRUE, ...) {
   verbose <- checkVerbose(...)
   bsg <- getBsGenome(gcache)
   bsg.seqlengths <- seqlengths(bsg)
@@ -226,6 +233,13 @@ generateAnnotatedChromosomesByGenes <-
     }
 
     if (return.anno) chr.anno else chr
+  }
+
+  if (!is.null(return.anno) && return.anno) {
+    annos <- suppressWarnings(do.call(c, unname(annos)))
+    anno.fn <- annotatedGenomeFN(gcache, gene.collapse, flank.up, flank.down,
+                                 stranded)
+    save(annos, file=anno.fn)
   }
 
   invisible(annos)

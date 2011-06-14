@@ -19,6 +19,16 @@ annotatedChromosomeFN <- function(gc.path, seqname, gene.collapse='cover',
   file.path(gc.path, 'annotated.chromosomes', fn)
 }
 
+annotatedGenomeFN <- function(gc.path, gene.collapse='cover',
+                              cds.cover='min', flank.up=1000L,
+                              flank.down=flank.up, stranded=TRUE, ...) {
+  gene.collapse <- matchGFGeneCollapse(gene.collapse)
+  base.fn <- annotatedChromosomeFN(gc.path, '', gene.collapse,
+                                   flank.up=flank.up, flank.down=flank.down,
+                                   stranded=stranded)
+  paste(dirname(base.fn), '/genome', basename(base.fn), sep="")
+}
+
 internalPrimingCacheFN <- function(gc.path, seqname, window, strand,
                                    type=c('wig', 'rda', 'ff')) {
   type <- match.arg(type)
