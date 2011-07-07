@@ -3,8 +3,8 @@ import(GenomicRanges)
 import(GenomicFeatures)
 import(rtracklayer)
 import(data.table)
+import(RSQLite)
 
-importFrom(RSQLite, sqliteCloseConnection, dbGetPreparedQuery)
 importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
 importFrom(ShortRead, id, chromosome)
@@ -39,7 +39,7 @@ exportMethods(duplicate,
               getBsGenome,
               chromosomes,
               neighbors,
-              
+
               ## I/GRanges stuff
               subset,
 
