@@ -109,6 +109,7 @@ export(
        generateGFXGeneModels,
        id2symbol,
        getAnnoPackageName,
+       generateCacheName,
 
        # BigWig Support
        BigWigFile,
