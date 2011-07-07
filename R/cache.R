@@ -25,6 +25,18 @@ setMethod("clearCache", c(x="ANY"),
 function(x, ...) {
   verbose <- checkVerbose(...)
   clear <- ls(x@.cache)
+  more <- list(...)
+  
+  if (length(more) > 0) {
+    more <- unlist(more)
+    more <- more[sapply(more, is.character)]
+    clear <- more[more %in% clear]
+  }
+
+  if (length(clear) == 0L) {
+    return(NULL)
+  }
+  
   if (verbose) {
     cat("  Clearing cache:", paste(clear, collapse=", "), "\n")
   }
