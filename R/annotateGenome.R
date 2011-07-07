@@ -183,7 +183,8 @@ generateAnnotatedChromosomesByGenes <-
   }
 
   annos <- foreach(chr=chrs, .packages=c("GenomicFeaturesX"),
-                   .inorder=FALSE, .verbose=verbose) %dopar% {
+                   .inorder=FALSE, .options.multicore=list(preschedule=FALSE),
+                   .verbose=verbose) %dopar% {
     cat(chr, "...\n")
     seqlength <- bsg.seqlengths[chr]
     .gc <- duplicate(gcache, pre.load=NULL)

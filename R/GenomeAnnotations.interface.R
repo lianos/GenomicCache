@@ -58,7 +58,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
   xcripts <- transcripts(gcache)
 
   foreach(chr=chromosomes, .packages="GenomicFeaturesX", .inorder=FALSE,
-          .verbose=verbose) %dopar% {
+          .options.multicore=list(preschedule=FALSE), .verbose=verbose) %dopar% {
   ## for (chr in chromosomes) {
     cat("===", chr, "===...\n")
     .gc <- duplicate(gcache)
