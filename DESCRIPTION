@@ -1,4 +1,4 @@
-Package: GenomicFeaturesX
+Package: GenomicCache
 Title: Support package for GenomicFeatures
 Version: 0.2
 Author: Steve Lianoglou,
