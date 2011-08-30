@@ -223,8 +223,8 @@ generateAnnotatedChromosomesByGenes <-
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
-        fn <- annotatedChromosomeFN(.gc, chr, gene.collapse, flank.up,
-                                    flank.down, stranded)
+        fn <- annotatedChromosomeFN(.gc, chr, gene.collapse, flank.up=flank.up,
+                                    flank.down=flank.down, stranded=stranded)
         cat("... (", chr, ") Saving to", fn, "\n")
         save(chr.anno, file=fn)
       }
