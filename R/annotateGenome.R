@@ -182,7 +182,7 @@ generateAnnotatedChromosomesByGenes <-
     stop("Bad chromosome names: ", paste(chrs[illegal.chr], collapse=","))
   }
 
-  annos <- foreach(chr=chrs, .packages=c("GenomicFeaturesX"),
+  annos <- foreach(chr=chrs, .packages=c("GenomicCache"),
                    .inorder=FALSE, .options.multicore=list(preschedule=FALSE),
                    .verbose=verbose) %dopar% {
     cat(chr, "...\n")

@@ -21,7 +21,7 @@ addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
                                        verbose=FALSE) {
   gdir <- cacheDir(gcache, 'gene.models')
   files <- list.files(gdir, full.names=TRUE)
-  foreach(fname=files, .packages=c("GenomicFeaturesX"), .verbose=verbose) %dopar% {
+  foreach(fname=files, .packages=c("GenomicCache"), .verbose=verbose) %dopar% {
     cat(fname, "\n")
     .gc <- duplicate(gcache)
     on.exit(dispose(.gc))
@@ -57,7 +57,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
 
   xcripts <- transcripts(gcache)
 
-  foreach(chr=chromosomes, .packages="GenomicFeaturesX", .inorder=FALSE,
+  foreach(chr=chromosomes, .packages="GenomicCache", .inorder=FALSE,
           .options.multicore=list(preschedule=FALSE), .verbose=verbose) %dopar% {
   ## for (chr in chromosomes) {
     cat("===", chr, "===...\n")
