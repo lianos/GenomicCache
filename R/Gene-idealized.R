@@ -57,6 +57,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
   cds.cover <- match.arg(cds.cover)
   collapse <- matchGFGeneCollapse(collapse, x)
   reducef <- switch(collapse, constitutive='interset', 'union')
+  metaD <- list()
   
   ## g.strand <- strand(x)
   g.strand <- as.vector(strand(transcripts(x, which.chr=which.chr)[[1]][1]))
@@ -117,6 +118,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
           width(range(ranges(xc)))
         })
         collapse <- switch(collapse, longest=which.max(lens), which.min(lens))
+        metaD$tx_name <- values(xcripts)$tx_name[collapse]
       }
       
       if (is.numeric(collapse)) {
@@ -223,7 +225,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
         }
       }
     }
-    
+    metadata(gr) <- metaD
     gr
   }, force.eval=force.eval)
 })

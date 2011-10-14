@@ -55,24 +55,20 @@ function(x, id, anno.source, rm.unknown) {
   if (length(unk) > 0) {
     ## Look in alias
     alias2eg <- getAnnMap("ALIAS2EG", x)
-    ids2 <- mget(id[unk], alias2eg, ifnotfound=NA)
-
-    if (rm.unknown) {
-      if (is.null(ids2)) {
-        unk2 <- seq_along(ids2)
-      } else {
-        unk2 <- which(sapply(ids2, is.na))
-      }
-
-      if (length(unk2) > 0) {
-        warning("Unknown transcript ids: ", paste(id[unk][unk2], collapse=","))
-        ids2 <- ids2[-unk2]
-      }
-      
-      ids2[unk2] <- NULL
+    ids[unk] <- mget(id[unk], alias2eg, ifnotfound=NA)
+  }
+  
+  if (rm.unknown) {
+    if (is.null(ids)) {
+      unk <- seq_along(id)
+    } else {
+      unk <- which(sapply(ids, is.na))    
     }
     
-    ids <- c(ids[-unk], ids2)
+    if (length(unk) > 0) {
+      warning("Unknown symbols:", paste(id[unk], collapse=","))
+      ids[unk] <- NULL
+    }
   }
   
   if (length(id) == 1L) {
