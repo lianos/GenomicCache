@@ -107,20 +107,18 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
 
 ## Get the gene symbol for these genes
 id2symbol <- function(x, ids=NULL) {
-  if (is(x, 'GenomicCache')) {
-    x <- x@.txdb
-  }
-  if (!is(x, "TranscriptDb")) {
-    stop("'x' must be a TranscriptDb object")
-  }
+  stopifnot(inherits(x, 'GenomicCache') || inherits(x, 'TranscriptDb'))
+  .genome <- genome(x)
 
   if (is.null(ids)) {
     SQL <- "SELECT * FROM gene"
-    ids <- GenomicFeatures:::dbEasyQuery(GenomicFeatures:::txdbConn(x), SQL)
+    ## ids <- GenomicFeatures:::dbEasyQuery(GenomicFeatures:::txdbConn(x), SQL)
+    ## Changed in bioc 2.9:
+    ids <- GenomicFeatures:::dbEasyQuery(txdbConn(x), SQL)
     ids <- ids$gene_id
   }
 
-  symbols <- getSymbolFromEntrezId(x, ids, rm.unknown=FALSE)
+  symbols <- getSymbolFromEntrezId(.genome, ids, rm.unknown=FALSE)
   data.frame(entrez=ids, symbol=sapply(symbols, '[', 1))
 }
 
@@ -143,6 +141,7 @@ function(x, pre.load=NULL, ...) {
 setMethod("dispose", c(x="GenomicCache"),
 function(x, ...) {
   clearCache(x)
+  # sqliteCloseConnection(GenomicFeatures:::txdbConn(txdb(x)))
   sqliteCloseConnection(GenomicFeatures:::txdbConn(txdb(x)))
 })
 
@@ -326,5 +325,3 @@ setMethod("txdb", c(x="GenomicCache"),
 function(x, ...) {
   x@.txdb
 })
-
-txdbc <- GenomicFeatures:::txdbConn

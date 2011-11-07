@@ -81,8 +81,7 @@ function(x, id, anno.source, rm.unknown) {
 
 setMethod("getEntrezIdFromSymbol", c(x="TranscriptDb"),
 function(x, id, anno.source, rm.unknown) {
-  genome <- subset(metadata(txdb), name == "Genome")$value
-  getEntrezIdFromSymbol(genome, id, anno.source, rm.unknown)
+  getEntrezIdFromSymbol(genome(x), id, anno.source, rm.unknown)
 })
 
 setMethod("getEntrezIdFromSymbol", c(x="GenomicCache"),
@@ -150,13 +149,13 @@ function(x, id, anno.source=annotationSource(x), rm.unknown) {
     return(getEntrezIdFromTranscriptId(genome(x), id, anno.source, rm.unknown))
   }
   query <- sprintf("SELECT _tx_id FROM transcript WHERE tx_name='%s'", id)
-  tx.id <- dbGetQuery(txdbc(x), query)[,1]
+  tx.id <- dbGetQuery(txdbConn(x), query)[,1]
   if (length(tx.id) == 0L) {
     stop("Unknown transcripts: ", paste(id, collapse=","))
   }
   df <- data.frame(tx.id=tx.id)
   query <- "SELECT gene_id,_tx_id FROM gene WHERE _tx_id=?"
-  df <- dbGetPreparedQuery(txdbc(x), query, df)
+  df <- dbGetPreparedQuery(txdbConn(x), query, df)
   res <- df[["gene_id"]]
   names(res) <- df[['_tx_id']]
   res
@@ -277,13 +276,13 @@ function(x, id, anno.source=annotationSource(x), rm.unknown) {
     return(getTranscriptIdFromEntrezId(genome(x), id, anno.source, rm.unknown))
   }
   query <- sprintf("SELECT _tx_id FROM gene WHERE gene_id='%s'", id)
-  tx.id <- dbGetQuery(txdbc(x), query)[,1]
+  tx.id <- dbGetQuery(txdbConn(x), query)[,1]
   if (length(tx.id) == 0L) {
     stop("Unknown entrez id ", id)
   }
   query <- sprintf("SELECT tx_name FROM transcript WHERE _tx_id=?")
   df <- data.frame("_tx_id"=tx.id)
-  tx.name <- dbGetPreparedQuery(txdbc(x), query, df)[,1]
+  tx.name <- dbGetPreparedQuery(txdbConn(x), query, df)[,1]
   tx.name
 })
 
