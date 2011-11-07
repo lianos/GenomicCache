@@ -140,7 +140,7 @@ function(x, package=NULL) {
   package
 })
 
-## imported from rtracklayer
+## imported from GenomicRanges
 ## setGeneric("genome", function(x, ...) standardGeneric("genome"))
 
 setGeneric("cacheFetch", function(x, what, expr, force.eval=FALSE) {

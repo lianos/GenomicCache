@@ -10,3 +10,4 @@ txdbConn <- function(x) {
 setMethod("genome", "TranscriptDb", function(x, ...) {
   subset(metadata(x), name == "Genome")$value
 })
+
