@@ -142,7 +142,7 @@ setMethod("dispose", c(x="GenomicCache"),
 function(x, ...) {
   clearCache(x)
   # sqliteCloseConnection(GenomicFeatures:::txdbConn(txdb(x)))
-  sqliteCloseConnection(GenomicFeatures:::txdbConn(txdb(x)))
+  sqliteCloseConnection(txdbConn(x))
 })
 
 setMethod("seqnames", c(x="GenomicCache"),
