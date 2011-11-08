@@ -94,6 +94,7 @@ function(x, by, collapse, cds.cover, which.chr, flank.up, flank.down, ...) {
           width(range(ranges(xc)))
         })
         collapse <- switch(collapse, longest=which.max(lens), which.min(lens))
+        metaD$tx_name <- values(xcripts)$tx_name[collapse]
       }
       if (is.numeric(collapse)) {
         ranges <- ranges(xcripts[[collapse]])
