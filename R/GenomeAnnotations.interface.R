@@ -62,6 +62,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
   ## for (chr in chromosomes) {
     cat("===", chr, "===...\n")
     .gc <- duplicate(gcache)
+    on.exit(dispose(.gc))
 
     chr.xcripts <- xcripts[which(seqnames(xcripts) == chr)]
     if (length(chr.xcripts) == 0L) {
@@ -77,9 +78,9 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
         g <- tryCatch(GFGene(tx.id=tx, .gc), error=function(e) NULL)
         if (!is.null(g)) {
           ## cat(chr, symbol(g), "\n")
-          xcripts <- transcripts(g, which.chr=chr)
-          to <- .idx + length(xcripts) - 1
-          .so.far[.idx:to] <<- values(xcripts)$tx_name
+          xc <- transcripts(g, which.chr=chr)
+          to <- .idx + length(xc) - 1
+          .so.far[.idx:to] <<- values(xc)$tx_name
           .idx <<- to + 1
           ## Generate idealized models
           for (i in 1:length(flank.up)) {
@@ -98,7 +99,6 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
 
     cat("...", chr, "done\n")
     save(genes, file=file.path(cache.dir, .geneCacheFileName(.gc, chr)))
-    dispose(.gc)
     chr
   }
 
