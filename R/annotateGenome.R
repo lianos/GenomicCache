@@ -1,9 +1,9 @@
 ## TODO: Building flank annotation is still screwed up! Look at RefSeq EIF4A1.
 ## there are many INTERNAL utr3* locations!
-setAs("GRanges", "AnnotatedChromosome", function(from) {
-  class(from) <- "AnnotatedChromosome"
-  from
-})
+## setAs("GRanges", "AnnotatedChromosome", function(from) {
+##   class(from) <- "AnnotatedChromosome"
+##   from
+## })
 
 setValidity("AnnotatedChromosome", function(object) {
   errs <- character()
@@ -67,7 +67,9 @@ getAnnotatedChromosome <- function(gcache, seqnames, gene.collapse='longest',
     }
     var.name <- load(fn)
     anno <- get(var.name, inherits=FALSE)
-    as(anno, 'AnnotatedChromosome')
+    ## as(anno, 'AnnotatedChromosome')
+    class(anno) <- "AnnotatedChromosome"
+    anno
   })
   suppressWarnings(do.call(c, unname(annotated)))
 }
@@ -174,7 +176,7 @@ generateAnnotatedChromosomesByGenes <-
     return.anno <- !do.save
   }
   if (is.null(chrs)) {
-    chrs <- chromosomes(gcache)
+    chrs <- seqlevels(gcache)
   }
 
   illegal.chr <- !chrs %in% names(bsg.seqlengths)
@@ -182,13 +184,13 @@ generateAnnotatedChromosomesByGenes <-
     stop("Bad chromosome names: ", paste(chrs[illegal.chr], collapse=","))
   }
 
-  annos <- foreach(chr=chrs, .packages=c("GenomicCache"),
+  ## annos <- foreach(chr=chrs, .packages=c("GenomicCache"),
+  annos <- foreach(chr=chrs,
                    .inorder=FALSE, .options.multicore=list(preschedule=FALSE),
                    .verbose=verbose) %dopar% {
     cat(chr, "...\n")
     seqlength <- bsg.seqlengths[chr]
     .gc <- duplicate(gcache, pre.load=NULL)
-    on.exit(dispose(.gc))
 
     genes <- tryCatch(getGenesOnChromosome(.gc, chr), error=function(e) NULL)
     if (is.null(genes)) {
@@ -204,7 +206,7 @@ generateAnnotatedChromosomesByGenes <-
         gm <- idealized(gene, by=gene.by, collapse=gene.collapse,
                         cds.cover=gene.cds.cover, flank.up=0L,
                         flank.down=0L, which.chr=chr)
-        metadata(gm) <- list(entrez.id=entrezId(gene))
+        metadata(gm) <- c(metadata(gm), list(entrez.id=entrezId(gene)))
         gm
       } else {
         NULL
@@ -220,6 +222,13 @@ generateAnnotatedChromosomesByGenes <-
       chr.anno <- annotateChromosome(models, entrez.id, flank.up, flank.down,
                                      seqname=chr, seqlength=seqlength,
                                      stranded=stranded)
+
+      if (gene.collapse %in% c('longest', 'shortest')) {
+        xref.txname <- unname(sapply(models, function(x) metadata(x)$tx_name))
+        xref.entrez <- unname(sapply(models, function(x) metadata(x)$entrez.id))
+        xref <- data.frame(entrez.id=xref.entrez, txname=xref.txname)
+        values(chr.anno)$tx_name <- xref$txname[match(values(chr.anno)$entrez.id, xref$entrez.id)]
+      }
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
@@ -233,6 +242,7 @@ generateAnnotatedChromosomesByGenes <-
       chr.anno <- NULL
     }
 
+    dispose(.gc)
     if (return.anno) chr.anno else chr
   }
 
