@@ -98,6 +98,11 @@ load.it <- function(rda.file, what=NULL) {
   if (!file.exists(rda.file)) {
     stop("Can't find data file ", rda.file)
   }
+  
+  if (substring(rda.file, nchar(rda.file) - 3L) == '.rds') {
+    return(readRDS(rda.file))
+  }
+  
   e <- new.env()
   vars <- load(rda.file, e)
   if (length(vars) == 0L) {
