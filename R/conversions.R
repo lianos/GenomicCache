@@ -1,2 +1,0 @@
-## Conversions moved to seqtools
-
