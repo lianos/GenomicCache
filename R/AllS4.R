@@ -141,7 +141,7 @@ function(x, package=NULL) {
 })
 
 ## imported from GenomicRanges
-## setGeneric("genome", function(x, ...) standardGeneric("genome"))
+## setGeneric("genome", function(x) standardGeneric("genome"))
 
 setGeneric("cacheFetch", function(x, what, expr, force.eval=FALSE) {
   standardGeneric("cacheFetch")

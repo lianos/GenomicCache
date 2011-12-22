@@ -313,10 +313,7 @@ function(x, which.chr=NULL, ...) {
 })
 
 ##' @importFrom rtracklayer genome
-setMethod("genome", c(x="GFGene"),
-function(x, ...) {
-  x@.genome
-})
+setMethod("genome", c(x="GFGene"), function(x) x@.genome)
 
 setMethod("symbol", c(x="GFGene"),
 function(x, ...) {
