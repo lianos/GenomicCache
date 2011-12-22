@@ -281,7 +281,7 @@ function(x, use.names=FALSE, ...) {
   cacheFetch(x, var, threeUTRsByTranscript(txdb(x), use.names=use.names))
 })
 
-setMethod("genome", c(x="GenomicCache"), function(x) x@.genome){
+setMethod("genome", c(x="GenomicCache"), function(x) x@.genome)
 
 setMethod("genome", c(x="TranscriptDb"),
 function(x) {
