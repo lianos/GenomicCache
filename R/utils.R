@@ -79,7 +79,7 @@ convert.na <- function(wut, to=".defaults.") {
 filterByChr <- function(grl, which.chr=NULL) {
   if (!is.null(which.chr)) {
     keep <- sapply(grl, function(g) {
-      length(g) > 0 && all(seqnames(g) == which.chr)
+      length(g) > 0 && all(as.logical(seqnames(g) == which.chr))
     })
     grl <- grl[keep]
   }

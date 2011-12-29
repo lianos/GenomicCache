@@ -8,6 +8,7 @@ import(RSQLite)
 importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
 importFrom(ShortRead, id, chromosome)
+importFrom(DBI, dbGetQuery)
 
 ## importClassesFrom(rtracklayer, BigWigSelection)
 ## importMethodsFrom(rtracklayer, import.bw, export.bw, genome)
