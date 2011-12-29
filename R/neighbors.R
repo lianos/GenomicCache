@@ -77,7 +77,7 @@ function(from, to, ...) {
 
 setMethod("neighbors", c(from="IRanges", to="GRanges"),
 function(from, to, ...) {
-  seqname <- as.character(unique(seqnames(to)))
+  seqname <- unique(as.character(seqnames(to)))
   if (length(seqname) != 1) {
     stop("A `to` object across multiple seqnames isn't allowed")
   }

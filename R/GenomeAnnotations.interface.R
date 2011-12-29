@@ -52,7 +52,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
   }
 
   if (is.null(chromosomes)) {
-    chromosomes <- seqnames(gcache)
+    chromosomes <- seqlevels(gcache)
   }
 
   xcripts <- transcripts(gcache)

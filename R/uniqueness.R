@@ -66,7 +66,7 @@ function(ranges, genome, chromosome, use.universal=FALSE,
 
 setMethod("flagUniqueRanges", c(ranges="GRanges"),
 function(ranges, genome, chromosome, use.universal=FALSE, ...) {
-  chromosomes <- unique(seqnames(ranges))
+  chromosomes <- unique(as.character(seqnames(ranges)))
   result <- logical(length(ranges))
   
   for (chr in chromosomes) {
