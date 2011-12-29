@@ -8,9 +8,9 @@ Description: Code to extend the core GenomicFeatures package. If you want to
              centric) manner, then this is the package for you.
 Maintainer: Steve Lianoglou <slianoglou@gmail.com>
 Depends: GenomicFeatures (>= 1.1.11), GenomicRanges (>= 1.2.1)
-Imports: methods, DBI (>= 0.2-5), RSQLite (>= 0.8-1), IRanges, GenomicRanges,
-         Biostrings (>= 2.17.6), rtracklayer (>= 1.7.11), biomaRt, RCurl,
-         AnnotationDbi, annotate, utils, plyr, ggplot2, foreach,
+Imports: methods, BiocGenerics, DBI (>= 0.2-5), RSQLite (>= 0.8-1), IRanges,
+         GenomicRanges, Biostrings (>= 2.17.6), rtracklayer (>= 1.7.11), biomaRt,
+         RCurl, AnnotationDbi, annotate, utils, plyr, ggplot2, foreach,
          data.table (>= 1.7.2), ShortRead, rtracklayer
 Suggests: testthat (>= 0.3),
           optparse (>= 0.9.1),
