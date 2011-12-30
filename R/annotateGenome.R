@@ -557,7 +557,7 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
   if (flank.down > 0) {
     bounds <- resize(bounds, width=width(bounds) + flank.down, fix='start')
   }
-  if (length(unique(seqnames(as.character(bounds)))) == 1) {
+  if (length(unique(as.character(seqnames(bounds)))) == 1) {
     bounds <- bounds[order(ranges(bounds))]
   }
 
