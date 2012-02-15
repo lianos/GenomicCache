@@ -161,13 +161,18 @@ isValidAnnotatedGenome <- function(x, gene.collapse='cover',
 ##' \code{\link{idealized}} function
 ##' @param gene.collapse The \code{collapse} parameter for the
 ##' \code{\link{idealized}} function
-##'
+##' @param fusion.filter Annotated fusion transcripts trip us up because the
+##' fusion product will mask the two individual product and most all
+##' exonic regions are identified as 'overlap'. This parameter uses a regex
+##' to identify genes as fusions. Genes that match will be exlcuded from
+##' annotation building. Set to \code{NULL} to keep all.
 ##' @return Invisibly returns an \code{\linkS4class{AnnnotatedChromosome}}
 ##' object
 generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
-           chrs=NULL, do.save=TRUE, return.anno=TRUE, ...) {
+           chrs=NULL, do.save=TRUE, fusion.filter="[[:alnum:]]-[^0-9]",
+           return.anno=TRUE, ...) {
   verbose <- checkVerbose(...)
   bsg <- getBsGenome(gcache)
   bsg.seqlengths <- seqlengths(bsg)
@@ -196,6 +201,15 @@ generateAnnotatedChromosomesByGenes <-
     if (is.null(genes)) {
       return(NULL)
     }
+    if (is.character(fusion.filter)) {
+      symbol <- sapply(genes, symbol)
+      axe <- grep(fusion.filter, symbol)
+      if (length(axe) > 0) {
+        cat("... removing", length(axe), "genes as detected fusions")
+        genes <- genes[-axe]
+      }
+    }
+
     entrez.id <- sapply(genes, entrezId)
 
     cat("... (", chr, ") cleaning gene models\n", sep="")
@@ -467,6 +481,12 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   resize.fix <- if (direction == 'up') 'start' else 'end'
   flank.start <- direction == 'up'
   exon.anno <- if (direction == 'up') 'utr5*' else 'utr3*'
+  ## DEBUG: 2012-01-08, utr5* region for APITD1-CORT (and rest of annotations!),
+  ##         - chr1 [10490626, 10490803] +) seems "wrong" and is due to upstream
+  ##           annotations being marked as overlap.
+  ##         -  why is chr1 10507873 10508775 (+) intergenic!?
+  ## DEBUG: 2012-01-08: Why is NPPA not showing up at all? Look at the CLCN6,
+  ##        NPPA-AS1 and NPPA locus.
   bounds <- annotatedTxBounds(annotated)
   chr.mask <- reduce(union(annotated, bounds))
   flanks <- flank(bounds, width=distance, start=flank.start)
@@ -539,16 +559,12 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
   }
 
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
-  key(dt) <- c('entrez.id', 'seqnames')
+  key(dt) <- c('seqnames', 'strand', 'entrez.id')
 
   ## by entrez.id, chr, strand
-  bounds <- dt[, by=list(entrez.id, seqnames), {
-    .sd <- .SD[1]
-    .sd$start <- min(start)
-    .sd$end <- max(end)
-    .sd$exon.anno <- 'txbound'
-    .sd
-  }]
+  bounds <- dt[, {
+    transform(.SD[1L], start=min(.SD$start), end=max(.SD$end), exon.anno='txbound')
+  }, by=key(dt)]
 
   bounds <- as(bounds, 'GRanges')
   if (flank.up > 0) {
