@@ -148,7 +148,6 @@ setGeneric("cacheFetch", function(x, what, expr, force.eval=FALSE) {
 })
 setGeneric("clearCache", function(x, ...) standardGeneric("clearCache"))
 setGeneric("dispose", function(x, ...) standardGeneric("dispose"))
-setGeneric("getBsGenome", function(x, ...) standardGeneric("getBsGenome"))
 
 ################################################################################
 ## Methods: Gene

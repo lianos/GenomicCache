@@ -6,6 +6,7 @@ import(GenomicFeatures)
 import(rtracklayer)
 import(data.table)
 import(RSQLite)
+import(SeqTools)
 
 importFrom(foreach, foreach)
 importFrom(AnnotationDbi, mget)
@@ -39,7 +40,6 @@ exportMethods(duplicate,
               cacheFetch,
               clearCache,
               dispose,
-              getBsGenome,
               chromosomes,
               neighbors,
 

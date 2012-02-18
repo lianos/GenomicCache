@@ -23,6 +23,22 @@ setValidity("AnnotatedChromosome", function(object) {
 
 })
 
+##' Plot the number of basepairs assigned to different annotations across genome
+genomeAnnotationDistribution <- function(agenome) {
+  stopifnot(inherits(agenome, "GenomicRanges"))
+
+  agdt <- as.data.frame(agenome)[, c('width', 'exon.anno')]
+  agdt <- data.table(agdt, key="exon.anno")
+  counts <- agdt[, list(count=sum(width)), by="exon.anno"]
+
+  g <- ggplot(as.data.frame(counts), aes(exon.anno, count)) + theme_bw() +
+    geom_bar(aes(fill=exon.anno), stat='identity') +
+      ylab("Count") + xlab("Exon Annotation") +
+        opts(axis.text.x=theme_text(angle=-45, hjust=0, vjust=1),
+             title=title)
+
+}
+
 ##' Returns the annotated chromosome object from the given parameters.
 ##'
 ##' If the file has not been built, an error will be thrown prompting the
