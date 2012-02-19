@@ -280,6 +280,15 @@ generateAnnotatedChromosomesByGenes <-
 
   if (!is.null(return.anno) && return.anno) {
     annos <- suppressWarnings(do.call(c, unname(annos)))
+    reanno <- tryCatch({
+      rematchSeqinfo(annos, getBsGenome(gcache)),
+    }, error=function(e) NULL)
+    if (is.null(reanno)) {
+      warning("Can't load BSgenome to reorder seqinfo")
+    } else {
+      annos <- reanno
+      annos <- annos[order(annos)]
+    }
     anno.fn <- annotatedGenomeFN(gcache, gene.collapse, flank.up, flank.down,
                                  stranded)
     save(annos, file=anno.fn)
