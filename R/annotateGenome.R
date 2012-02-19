@@ -188,10 +188,12 @@ generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
            chrs=NULL, do.save=TRUE, fusion.filter="[[:alnum:]]-[^0-9]",
-           return.anno=TRUE, ...) {
+           bsg.seqlengths=NULL, return.anno=TRUE, ...) {
   verbose <- checkVerbose(...)
-  bsg <- getBsGenome(gcache)
-  bsg.seqlengths <- seqlengths(bsg)
+  if (is.null(bsg.seqlengths)) {
+    bsg <- getBsGenome(gcache)
+    bsg.seqlengths <- seqlengths(bsg)
+  }
   checkOrCreateDirectory(cacheDir(gcache, 'annotated.chromosomes'), TRUE)
   if (is.null(return.anno)) {
     return.anno <- !do.save

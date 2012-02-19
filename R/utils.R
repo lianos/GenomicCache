@@ -139,7 +139,7 @@ getAnnoPackageName <- function(from, package=NULL) {
 
 dir.exists <- function(path) {
   path <- as.character(path)
-  !is.na(file.info(path)$isdir) && file.info(path)$isdir
+  sapply(file.info(path)$isdir, isTRUE)
 }
 
 assert.dir.exists <- function(path) {

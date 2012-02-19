@@ -133,6 +133,11 @@ function(object) {
 ## to the transcript database. \code{pre.load} is set to \code{NULL} because we
 ## often don't want to waste time loading things since this is likely called
 ## when running within
+setMethod("getBsGenome", c(x="GenomicCache"),
+function(x, ...) {
+  getBsGenome(genome(x))
+})
+
 setMethod("duplicate", c(x="GenomicCache"),
 function(x, pre.load=NULL, ...) {
   GenomicCache(x@.path, pre.load=pre.load)
