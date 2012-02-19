@@ -42,7 +42,8 @@ exportMethods(duplicate,
               dispose,
               chromosomes,
               neighbors,
-
+              getBsGenome,
+              
               ## I/GRanges stuff
               subset,
 
