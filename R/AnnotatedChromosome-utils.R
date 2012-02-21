@@ -31,27 +31,3 @@ annotateWithIntronUtr3 <- function(ag, ...) {
   ag
 }
 
-extractSeqinfo <- function(x, bsg) {
-  if (inherits(try(seqinfo(x)), "try-error")) {
-    stop("An object with `seqinfo` is required for `x`")
-  }
-  if (!inherits(bsg, 'BSgenome')) {
-    stop("`bsg` must be a BSgenome object")
-  }
-  si.bsg <- seqinfo(bsg)
-  si.bsg[seqlevels(si.bsg)[seqlevels(si.bsg) %in% seqlevels(x)]]
-}
-
-rematchSeqinfo <- function(x, bsg) {
-  if (inherits(try(seqinfo(x)), "try-error")) {
-    stop("An object with `seqinfo` is required for `x`")
-  }
-  if (!inherits(bsg, 'BSgenome')) {
-    stop("`bsg` must be a BSgenome object")
-  }
-  si.bsg <- seqinfo(bsg)
-  si <- si.bsg[seqlevels(si.bsg)[seqlevels(si.bsg) %in% seqlevels(x)]]
-  new2old <- match(seqlevels(si), seqlevels(x))
-  seqinfo(x, new2old) <- si
-  x
-}
