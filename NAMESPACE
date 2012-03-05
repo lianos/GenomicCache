@@ -115,9 +115,6 @@ export(
        getAnnoPackageName,
        generateCacheName,
 
-       rematchSeqinfo,
-       extractSeqinfo,
-
        # BigWig Support
        BigWigFile,
 
