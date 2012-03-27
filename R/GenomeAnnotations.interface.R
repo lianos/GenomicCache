@@ -21,7 +21,7 @@ addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
                                        verbose=FALSE) {
   gdir <- cacheDir(gcache, 'gene.models')
   files <- list.files(gdir, full.names=TRUE)
-  foreach(fname=files, .packages=c("GenomicCache"), .verbose=verbose) %dopar% {
+  mclapply(files, function(fname) {
     cat(fname, "\n")
     .gc <- duplicate(gcache)
     on.exit(dispose(.gc))
@@ -32,7 +32,7 @@ addIdealizedToGFXGeneCache <- function(gcache, gene.by, gene.collapse,
                        which.chr=chr, flank.up=flank.up, flank.down=flank.down)
     save(genes, file=fname)
     chr
-  }
+  }, mc.preschedule=FALSE)
 }
 
 ## ~ 6 Hours for RefSeq hg18
@@ -57,9 +57,10 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
 
   xcripts <- transcripts(gcache)
 
-  foreach(chr=chromosomes, .packages="GenomicCache", .inorder=FALSE,
-          .options.multicore=list(preschedule=FALSE), .verbose=verbose) %dopar% {
+  # foreach(chr=chromosomes, .packages="GenomicCache", .inorder=FALSE,
+  #         .options.multicore=list(preschedule=FALSE), .verbose=verbose) %dopar% {
   ## for (chr in chromosomes) {
+  mclapply(chromosomes, function(chr) {
     cat("===", chr, "===...\n")
     .gc <- duplicate(gcache)
     on.exit(dispose(.gc))
@@ -100,7 +101,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
     cat("...", chr, "done\n")
     save(genes, file=file.path(cache.dir, .geneCacheFileName(.gc, chr)))
     chr
-  }
+  }, mc.preschedule=FALSE)
 
 }
 
