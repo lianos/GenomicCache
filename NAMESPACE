@@ -29,8 +29,8 @@ exportClasses(GenomicCache,
               EnsemblGene,
               AceviewGene,
               UcscGene,
-              AnnotatedChromosome,
-              BigWigFile
+              AnnotatedChromosome
+              # BigWigFile
 )
 
 exportMethods(duplicate,
@@ -115,11 +115,8 @@ export(
        getAnnoPackageName,
        generateCacheName,
 
-       rematchSeqinfo,
-       extractSeqinfo,
-
        # BigWig Support
-       BigWigFile,
+       # BigWigFile,
 
        ## utilities
        na.logical,
