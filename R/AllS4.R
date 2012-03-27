@@ -134,6 +134,8 @@ function(x, package=NULL) {
       rn4='org.Rn.eg.db', rn3='org.Rn.eg.db',       ## Rat
       dm3='org.Dm.eg.db',                           ## Fly
       ce4='org.Ce.eg.db', ce6='org.Ce.eg.db',       ## Worm
+      canFam2='org.Cf.eg.db',                       ## dog
+      rheMac2="org.Mmu.eg.db",                      ## rhesus
       stop("Unknown genome -- provide the annotation package in `package`")
     )
   }
