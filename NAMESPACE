@@ -9,8 +9,8 @@ import(RSQLite)
 import(SeqTools)
 
 importFrom(foreach, foreach)
-importFrom(BiocGenerics, mget)
-# importFrom(AnnotationDbi, mget)
+#importFrom(BiocGenerics, mget)
+importFrom(AnnotationDbi, mget)
 importFrom(ShortRead, id, chromosome)
 importFrom(DBI, dbGetQuery)
 

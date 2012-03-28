@@ -207,10 +207,10 @@ generateAnnotatedChromosomesByGenes <-
     stop("Bad chromosome names: ", paste(chrs[illegal.chr], collapse=","))
   }
 
-  ## annos <- foreach(chr=chrs, .packages=c("GenomicCache"),
-  annos <- foreach(chr=chrs,
-                   .inorder=FALSE, .options.multicore=list(preschedule=FALSE),
-                   .verbose=verbose) %dopar% {
+  ## annos <- foreach(chr=chrs,
+  ##                  .inorder=FALSE, .options.multicore=list(preschedule=FALSE),
+  ##                  .verbose=verbose) %dopar% {
+  annos <- mclapply(chrs, function(chr) {
     cat(chr, "...\n")
     seqlength <- bsg.seqlengths[chr]
     .gc <- duplicate(gcache, pre.load=NULL)
@@ -276,7 +276,7 @@ generateAnnotatedChromosomesByGenes <-
 
     dispose(.gc)
     if (return.anno) chr.anno else chr
-  }
+  }, mc.preschedule=FALSE)
 
   if (!is.null(return.anno) && return.anno) {
     annos <- suppressWarnings(do.call(c, unname(annos)))
