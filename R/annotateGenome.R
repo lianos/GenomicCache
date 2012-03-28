@@ -289,8 +289,8 @@ generateAnnotatedChromosomesByGenes <-
       annos <- reanno
       annos <- annos[order(annos)]
     }
-    anno.fn <- annotatedGenomeFN(gcache, gene.collapse, flank.up, flank.down,
-                                 stranded)
+    anno.fn <- annotatedGenomeFN(gcache, gene.collapse, gene.cds.cover, flank.up,
+                                 flank.down, stranded)
     save(annos, file=anno.fn)
   }
 
