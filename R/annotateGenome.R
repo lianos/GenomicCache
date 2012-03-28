@@ -279,6 +279,7 @@ generateAnnotatedChromosomesByGenes <-
   }, mc.preschedule=FALSE)
 
   if (!is.null(return.anno) && return.anno) {
+    annos <- annos[!sapply(annos, is.null)]
     annos <- suppressWarnings(do.call(c, unname(annos)))
     reanno <- tryCatch({
       rematchSeqinfo(annos, getBsGenome(gcache))
