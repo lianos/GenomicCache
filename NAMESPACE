@@ -9,7 +9,8 @@ import(RSQLite)
 import(SeqTools)
 
 importFrom(foreach, foreach)
-importFrom(AnnotationDbi, mget)
+#importFrom(AnnotationDbi, mget)
+importFrom(BiocGenerics, mget)
 importFrom(ShortRead, id, chromosome)
 importFrom(DBI, dbGetQuery)
 
@@ -43,7 +44,7 @@ exportMethods(duplicate,
               chromosomes,
               neighbors,
               getBsGenome,
-              
+
               ## I/GRanges stuff
               subset,
 
