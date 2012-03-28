@@ -279,6 +279,7 @@ generateAnnotatedChromosomesByGenes <-
   }, mc.preschedule=FALSE)
 
   if (!is.null(return.anno) && return.anno) {
+    annos <- annos[!sapply(annos, is.null)]
     annos <- suppressWarnings(do.call(c, unname(annos)))
     reanno <- tryCatch({
       rematchSeqinfo(annos, getBsGenome(gcache))
@@ -289,8 +290,8 @@ generateAnnotatedChromosomesByGenes <-
       annos <- reanno
       annos <- annos[order(annos)]
     }
-    anno.fn <- annotatedGenomeFN(gcache, gene.collapse, flank.up, flank.down,
-                                 stranded)
+    anno.fn <- annotatedGenomeFN(gcache, gene.collapse, gene.cds.cover, flank.up,
+                                 flank.down, stranded)
     save(annos, file=anno.fn)
   }
 
