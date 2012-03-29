@@ -136,6 +136,7 @@ function(x, package=NULL) {
       ce4='org.Ce.eg.db', ce6='org.Ce.eg.db',       ## Worm
       canFam2='org.Cf.eg.db',                       ## dog
       rheMac2="org.Mmu.eg.db",                      ## rhesus
+      danRer7='org.Dr.eg.db',                       ## zebrafish
       stop("Unknown genome -- provide the annotation package in `package`")
     )
   }
