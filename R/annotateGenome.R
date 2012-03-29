@@ -213,9 +213,10 @@ generateAnnotatedChromosomesByGenes <-
   annos <- mclapply(chrs, function(chr) {
     cat(chr, "...\n")
     seqlength <- bsg.seqlengths[chr]
-    .gc <- duplicate(gcache, pre.load=NULL)
+    ## .gc <- duplicate(gcache, pre.load=NULL)
 
-    genes <- tryCatch(getGenesOnChromosome(.gc, chr), error=function(e) NULL)
+    ## genes <- tryCatch(getGenesOnChromosome(.gc, chr), error=function(e) NULL)
+    genes <- tryCatch(getGenesOnChromosome(gcache, chr), error=function(e) NULL)
     if (is.null(genes)) {
       return(NULL)
     }
@@ -259,13 +260,17 @@ generateAnnotatedChromosomesByGenes <-
         xref.txname <- unname(sapply(models, function(x) metadata(x)$tx_name))
         xref.entrez <- unname(sapply(models, function(x) metadata(x)$entrez.id))
         xref <- data.frame(entrez.id=xref.entrez, txname=xref.txname)
-        values(chr.anno)$tx_name <- xref$txname[match(values(chr.anno)$entrez.id, xref$entrez.id)]
+        xrf <- match(values(chr.anno)$entrez.id, xref$entrez.id)
+        values(chr.anno)$tx_name <- xref$txname[xrf]
       }
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
-        fn <- annotatedChromosomeFN(.gc, chr, gene.collapse, flank.up=flank.up,
+        ## fn <- annotatedChromosomeFN(.gc, chr, gene.collapse, flank.up=flank.up,
+        ##                             flank.down=flank.down, stranded=stranded)
+        fn <- annotatedChromosomeFN(gcache, chr, gene.collapse, flank.up=flank.up,
                                     flank.down=flank.down, stranded=stranded)
+
         cat("... (", chr, ") Saving to", fn, "\n")
         save(chr.anno, file=fn)
       }
@@ -274,27 +279,25 @@ generateAnnotatedChromosomesByGenes <-
       chr.anno <- NULL
     }
 
-    dispose(.gc)
+    ## dispose(.gc)
     if (return.anno) chr.anno else chr
   }, mc.preschedule=FALSE)
 
-  if (!is.null(return.anno) && return.anno) {
-    annos <- annos[!sapply(annos, is.null)]
-    annos <- suppressWarnings(do.call(c, unname(annos)))
-    reanno <- tryCatch({
-      rematchSeqinfo(annos, getBsGenome(gcache))
-    }, error=function(e) NULL)
-    if (is.null(reanno)) {
-      warning("Can't load BSgenome to reorder seqinfo")
-    } else {
-      annos <- reanno
-      annos <- annos[order(annos)]
-    }
-    anno.fn <- annotatedGenomeFN(gcache, gene.collapse, gene.cds.cover, flank.up,
-                                 flank.down, stranded)
-    save(annos, file=anno.fn)
-  }
+  annos <- annos[!sapply(annos, is.null)]
+  annos <- suppressWarnings(do.call(c, unname(annos)))
 
+  reanno <- tryCatch({
+    rematchSeqinfo(annos, getBsGenome(gcache))
+  }, error=function(e) NULL)
+  if (is.null(reanno)) {
+    warning("Can't load BSgenome to reorder seqinfo")
+  } else {
+    annos <- reanno
+    annos <- annos[order(annos)]
+  }
+  anno.fn <- annotatedGenomeFN(gcache, gene.collapse, gene.cds.cover, flank.up,
+                               flank.down, stranded)
+  save(annos, file=anno.fn)
   invisible(annos)
 }
 
@@ -375,7 +378,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     ##  if (!stranded) '*' else as.character(strand(g.exons)[1])
     ## }, error=function(e) browser())
     itree <- interval.annos[[ref.strand]]$exclusive
-    mm <- matchMatrix(findOverlaps(ranges(g.exons), itree))
+    mm <- as.matrix(findOverlaps(ranges(g.exons), itree))
     if (nrow(mm) > 0) {
       ## use exclusive ranges only for exon boundaries
       clean <- GRanges(seqnames=seqname, ranges=IRanges(itree[mm[, 2]]),
@@ -390,7 +393,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     clean
   })
 
-  annotated <- do.call(c, clean.list)
+  annotated <- do.call(c, unname(clean.list))
 
   ## Convert overlap regions to GRanges and combine
   overlaps <- lapply(names(interval.annos), function(istrand) {
@@ -401,7 +404,7 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
       GRanges()
     }
   })
-  overlaps <- do.call(c, overlaps)
+  overlaps <- do.call(c, unname(overlaps))
   if (length(overlaps) > 0) {
     values(overlaps) <- DataFrame(exon.anno='overlap', symbol=NA, entrez.id=NA)
     annotated <- c(annotated, overlaps)
@@ -487,7 +490,7 @@ buildIntronAnnotation <- function(annotated, stranded=TRUE) {
     unannotated <- unannotated[strand(unannotated) != '*']
   }
   o <- findOverlaps(unannotated, bounds)
-  mm <- matchMatrix(o)
+  mm <- as.matrix(o)
 
   if (nrow(mm) > 0) {
     ## redundant matches can happen -- we ignore them for now (danger!)
@@ -524,7 +527,7 @@ buildFlankAnnotation <- function(annotated, distance, direction, seqlength=NA) {
   unique.flanks <- resize(unique.flanks, width=width(unique.flanks) + 1,
                           fix=resize.fix)
   o <- findOverlaps(unique.flanks, bounds)
-  mm <- matchMatrix(o)
+  mm <- as.matrix(o)
 
   if (nrow(mm) > 0) {
     ## There will be duplicate matches here due to txbounds that overlap
@@ -576,7 +579,7 @@ trimRangesToSeqlength <- function(granges, seqlength=NA) {
 ##' @return A \code{GRanges} with the transcription bounds
 annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
                               seqlength=NA) {
-  if ((inherits(annotated, 'GRanges') && length(annotated) == 0L) ||
+  if ((inherits(annotated, 'GenomicRanges') && length(annotated) == 0L) ||
       (inherits(annotated, 'data.frame') && nrow(annotated) == 0L)) {
     stop("No annotations in `annotated`")
   }
@@ -587,7 +590,7 @@ annotatedTxBounds <- function(annotated, flank.up=0L, flank.down=0L,
   }
 
   dt <- subset(as(annotated, 'data.table'), !is.na(entrez.id))
-  key(dt) <- c('seqnames', 'strand', 'entrez.id')
+  setkeyv(dt, c('seqnames', 'strand', 'entrez.id'))
 
   ## by entrez.id, chr, strand
   bounds <- dt[, {
