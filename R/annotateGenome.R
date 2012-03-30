@@ -199,7 +199,9 @@ generateAnnotatedChromosomesByGenes <-
     return.anno <- !do.save
   }
   if (is.null(chrs)) {
-    chrs <- seqlevels(gcache)
+    ## chrs <- seqlevels(gcache)
+    chr.files <- gsub('.rda', '', dir(cacheDir(gcache, 'gene.models')))
+    chrs <- sapply(strsplit(chr.files, '.', fixed=TRUE), tail, 1)
   }
 
   illegal.chr <- !chrs %in% names(bsg.seqlengths)
