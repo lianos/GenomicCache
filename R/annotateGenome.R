@@ -191,8 +191,7 @@ generateAnnotatedChromosomesByGenes <-
            bsg.seqlengths=NULL, return.anno=TRUE, ...) {
   verbose <- checkVerbose(...)
   if (is.null(bsg.seqlengths)) {
-    bsg <- getBsGenome(gcache)
-    bsg.seqlengths <- seqlengths(bsg)
+    bsg.seqlengths <- seqlengths(gcache)
   }
   checkOrCreateDirectory(cacheDir(gcache, 'annotated.chromosomes'), TRUE)
   if (is.null(return.anno)) {
@@ -202,6 +201,10 @@ generateAnnotatedChromosomesByGenes <-
     ## chrs <- seqlevels(gcache)
     chr.files <- gsub('.rda', '', dir(cacheDir(gcache, 'gene.models')))
     chrs <- sapply(strsplit(chr.files, '.', fixed=TRUE), tail, 1)
+  }
+
+  if (length(chrs) == 0) {
+    stop("No chromosomes found to build gene models from")
   }
 
   illegal.chr <- !chrs %in% names(bsg.seqlengths)
@@ -289,7 +292,7 @@ generateAnnotatedChromosomesByGenes <-
   annos <- suppressWarnings(do.call(c, unname(annos)))
 
   reanno <- tryCatch({
-    rematchSeqinfo(annos, getBsGenome(gcache))
+    rematchSeqinfo(annos, gcache)
   }, error=function(e) NULL)
   if (is.null(reanno)) {
     warning("Can't load BSgenome to reorder seqinfo")
@@ -411,7 +414,8 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
     values(overlaps) <- DataFrame(exon.anno='overlap', symbol=NA, entrez.id=NA)
     annotated <- c(annotated, overlaps)
   }
-  annotated <- annotated[order(ranges(annotated))]
+  ## annotated <- annotated[order(ranges(annotated))]
+  annotated <- sort(annotated)
 
   ## Annotated extended/flanking utrs. If the extended flank runs into
   ## a region that is already annotated, we only take the region that
@@ -429,7 +433,8 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   }
 
   if (resort) {
-    annotated <- annotated[order(ranges(annotated))]
+    ## annotated <- annotated[order(ranges(annotated))]
+    annotated <- sort(annotated)
     resort <- FALSE
   }
 
@@ -440,7 +445,8 @@ annotateChromosome <- function(gene.list, entrez.id, flank.up=0L,
   ## Whatever isn't marked by now must be intergenic
   intergenic <- buildIntergenicRegions(annotated, stranded=stranded)
   annotated <- c(annotated, intergenic)
-  annotated <- annotated[order(ranges(annotated))]
+  ## annotated <- annotated[order(ranges(annotated))]
+  annotated <- sort(annotated)
 
   if (length(findOverlaps(annotated, ignoreSelf=TRUE, type='any')) > 0) {
     warning("Annotation for chromosome", seqname, "is not clean", sep=" ")
