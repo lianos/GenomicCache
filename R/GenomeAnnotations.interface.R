@@ -68,9 +68,11 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
     chr.xcripts <- xcripts[which(seqnames(xcripts) == chr)]
     if (length(chr.xcripts) == 0L) {
       genes <- list()
+      missed.id <- character()
     } else {
       .so.far <- character(length(chr.xcripts))
       .idx <- 1L
+
       genes <- lapply(values(chr.xcripts)$tx_name, function(tx) {
         if (tx %in% .so.far) {
           return(NULL)
@@ -92,15 +94,19 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
         g
       })
 
-      genes <- genes[!sapply(genes, is.null)]
+      missed <- sapply(genes, is.null)
+      missed.id <- values(chr.xcripts)$tx_name[missed]
+
+      genes <- genes[!missed]
       if (length(genes) > 0) {
         names(genes) <- make.unique(sapply(genes, symbol))
       }
     }
 
-    cat("...", chr, "done\n")
+    cat("...", chr, "done:", length(genes), "good,", length(missed.id), "bad\n")
     save(genes, file=file.path(cache.dir, .geneCacheFileName(.gc, chr)))
-    chr
+
+    missed.id
   }, mc.preschedule=FALSE)
 
 }
