@@ -187,8 +187,9 @@ isValidAnnotatedGenome <- function(x, gene.collapse='cover',
 generateAnnotatedChromosomesByGenes <-
   function(gcache, flank.up=1000L, flank.down=flank.up, stranded=TRUE,
            gene.by='all', gene.collapse='cover', gene.cds.cover='min',
-           chrs=NULL, do.save=TRUE, fusion.filter="[[:alnum:]]-[^0-9]",
-           bsg.seqlengths=NULL, return.anno=TRUE, ...) {
+           add.ensembl.id=TRUE, chrs=NULL, do.save=TRUE,
+           fusion.filter="[[:alnum:]]-[^0-9]", bsg.seqlengths=NULL,
+           return.anno=TRUE, ...) {
   verbose <- checkVerbose(...)
   if (is.null(bsg.seqlengths)) {
     bsg.seqlengths <- seqlengths(gcache)
@@ -268,6 +269,13 @@ generateAnnotatedChromosomesByGenes <-
         xrf <- match(values(chr.anno)$entrez.id, xref$entrez.id)
         values(chr.anno)$tx_name <- xref$txname[xrf]
       }
+
+      if (add.ensembl.id) {
+        meta <- insertEnsemblId(as.data.frame(values(dm.atlas)),
+                                genome(gcache))
+        values(chr.ann)
+      }
+
       cat(proc.time()['elapsed'] - st, "seconds\n")
 
       if (do.save) {
@@ -305,6 +313,33 @@ generateAnnotatedChromosomesByGenes <-
   save(annos, file=anno.fn)
   invisible(annos)
 }
+
+insertEnsemblId <- function(xdf, genome.id) {
+  stopifnot(inherits(xdf, 'data.frame'))
+  entrez.col <- which(colnames(xdf) == 'entrez.id')
+  if (length(entrez.col) != 1L) {
+    stop("entrez.id required")
+  }
+  ens.id <- matchEnsId(xdf[[entrez.col]], genome.id)
+  ans <- transform(xdf[, 1:entrez.col, drop=FALSE], ens.id=ens.id)
+  if (ncol(ans) < ncol(xdf) + 1L) {
+    ans <- cbind(ans, xdf[,-(1:entrez.col),drop=FALSE])
+  }
+  ans
+}
+
+matchEnsId <- function(x, genome.id) {
+  x <- as.character(x)
+  xentrez <- unique(x)
+  xentrez <- xentrez[!is.na(xentrez)]
+
+  xens <- getGeneIdFromEntrezId(genome.id, xentrez, 'ensGene', rm.unknown=FALSE)
+  xref <- sapply(xens, '[[', 1L)
+  names(xref) <- names(xens)
+
+  xref[x]
+}
+
 
 ##' Calculates a GRanges object for a chromosome, with internal ranges
 ##' corresponding to annotated exon boundaries for genes.
