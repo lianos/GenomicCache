@@ -325,6 +325,11 @@ insertEnsemblId <- function(xdf, genome.id) {
   if (ncol(ans) < ncol(xdf) + 1L) {
     ans <- cbind(ans, xdf[,-(1:entrez.col),drop=FALSE])
   }
+  for (cname in colnames(ans)) {
+    if (is.factor(ans[[cname]])) {
+      ans[[cname]] <- as.character(ans[[cname]])
+    }
+  }
   ans
 }
 
