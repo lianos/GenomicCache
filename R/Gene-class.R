@@ -134,6 +134,10 @@ GFGene <- function(..., .gc=NULL) {
     stop("Unknown gene identifier: ", id, " (is it a ", id.type, "?)")
   }
 
+  if (length(entrez.id) > 1) {
+    stop("More than one entrez.id is returned for tx.id: ", id)
+  }
+
   if (is.null(symbol)) {
     symbol <- getSymbolFromEntrezId(.gc, entrez.id, anno.source)
   }

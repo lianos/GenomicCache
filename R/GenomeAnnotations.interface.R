@@ -95,7 +95,7 @@ generateGFXGeneModels <- function(gcache, gene.by='all', gene.collapse='cover',
       })
 
       missed <- sapply(genes, is.null)
-      missed.id <- values(chr.xcripts)$tx_name[missed]
+      missed.id <- setdiff(values(chr.xcripts)$tx_name[missed], .so.far)
 
       genes <- genes[!missed]
       if (length(genes) > 0) {

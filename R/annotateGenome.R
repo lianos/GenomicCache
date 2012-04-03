@@ -271,9 +271,9 @@ generateAnnotatedChromosomesByGenes <-
       }
 
       if (add.ensembl.id) {
-        meta <- insertEnsemblId(as.data.frame(values(dm.atlas)),
+        meta <- insertEnsemblId(as.data.frame(values(chr.anno)),
                                 genome(gcache))
-        values(chr.ann)
+        values(chr.anno) <- DataFrame(meta)
       }
 
       cat(proc.time()['elapsed'] - st, "seconds\n")

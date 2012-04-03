@@ -1,7 +1,7 @@
 ## These funcions do "cross reference" look ups for transcript ids, symbol
 ## names gene ids, etc. The "base" function for each receives a character
 ## value for `x` which should be the genome name (ie. hg18, mm9, etc.)
-## 
+##
 ## All functions have the same signature:
 ## @param x The name of the genome the query is against
 ## @param id The identifiers that need to be translated.
@@ -21,14 +21,14 @@
 ##' @exportMethod getEntrezIdFromSymbol
 ##' @rdname gene-id-conversion-methods
 ##' @author Steve Lianoglou \email{slianoglou@@gmail.com}
-##' 
+##'
 ##' @param x A character vector specifying the genome (ie. "hg18"), a
 ##' \code{linkS4class{TranscriptDb}} object, or a
 ##' \code{\linkS4class{GenomicCache}} that the genome information can be
 ##' extracted from.
 ##' @param id A character vector of symbols, transcript ids, entrez ids, etc.
 ##' @param anno.source Explicitly specify \code{refGene}, etc. This value
-##' can be automatically extracted if \code{x} is a a 
+##' can be automatically extracted if \code{x} is a a
 ##' @param rm.unknown If \code{TRUE} symbols with unknown entrez id's are
 ##' removed, otherwise \code{NA} kept for them
 ##'
@@ -45,36 +45,36 @@ function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
   symbol2eg <- getAnnMap("SYMBOL2EG", x)
   ids <- mget(id, symbol2eg, ifnotfound=NA)
-  
+
   if (is.null(ids)) {
     unk <- seq_along(id)
   } else {
-    unk <- which(sapply(ids, is.na))    
+    unk <- which(sapply(ids, is.na))
   }
-  
+
   if (length(unk) > 0) {
     ## Look in alias
     alias2eg <- getAnnMap("ALIAS2EG", x)
     ids[unk] <- mget(id[unk], alias2eg, ifnotfound=NA)
   }
-  
+
   if (rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))    
+      unk <- which(sapply(ids, is.na))
     }
-    
+
     if (length(unk) > 0) {
       warning("Unknown symbols:", paste(id[unk], collapse=","))
       ids[unk] <- NULL
     }
   }
-  
+
   if (length(id) == 1L) {
     ids <- unlist(ids)
   }
-  
+
   ids
 })
 
@@ -101,7 +101,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 setMethod("getEntrezIdFromTranscriptId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
-  
+
   if (anno.source == 'ensGene') {
     map <- revmap(getAnnMap('ENSEMBLTRANS', x))
   } else if (anno.source == 'refGene') {
@@ -115,16 +115,16 @@ function(x, id, anno.source, rm.unknown) {
   } else {
     stop("Unknown annotation source (UCSC Table): ", anno.source)
   }
-  
+
   ids <- mget(id, map, ifnotfound=NA)
-  
+
   if (rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))    
+      unk <- which(sapply(ids, is.na))
     }
-    
+
     if (length(unk) > 0) {
       warning("Unknown transcript ids: ", paste(id[unk], collapse=","))
       ids[unk] <- NULL
@@ -145,20 +145,21 @@ function(x, id, anno.source, rm.unknown) {
 
 setMethod("getEntrezIdFromTranscriptId", c(x="TranscriptDb"),
 function(x, id, anno.source=annotationSource(x), rm.unknown) {
-  if (anno.source == 'ensGene') {
-    return(getEntrezIdFromTranscriptId(genome(x), id, anno.source, rm.unknown))
-  }
-  query <- sprintf("SELECT _tx_id FROM transcript WHERE tx_name='%s'", id)
-  tx.id <- dbGetQuery(txdbConn(x), query)[,1]
-  if (length(tx.id) == 0L) {
-    stop("Unknown transcripts: ", paste(id, collapse=","))
-  }
-  df <- data.frame(tx.id=tx.id)
-  query <- "SELECT gene_id,_tx_id FROM gene WHERE _tx_id=?"
-  df <- dbGetPreparedQuery(txdbConn(x), query, df)
-  res <- df[["gene_id"]]
-  names(res) <- df[['_tx_id']]
-  res
+  ## if (anno.source == 'ensGene') {
+  ##   return(getEntrezIdFromTranscriptId(genome(x), id, anno.source, rm.unknown))
+  ## }
+  ## query <- sprintf("SELECT _tx_id FROM transcript WHERE tx_name='%s'", id)
+  ## tx.id <- dbGetQuery(txdbConn(x), query)[,1]
+  ## if (length(tx.id) == 0L) {
+  ##   stop("Unknown transcripts: ", paste(id, collapse=","))
+  ## }
+  ## df <- data.frame(tx.id=tx.id)
+  ## query <- "SELECT gene_id,_tx_id FROM gene WHERE _tx_id=?"
+  ## df <- dbGetPreparedQuery(txdbConn(x), query, df)
+  ## res <- df[["gene_id"]]
+  ## names(res) <- df[['_tx_id']]
+  ## res
+  getEntrezIdFromTranscriptId(genome(x), id, anno.source, rm.unknown)
 })
 
 
@@ -173,7 +174,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 setMethod("getEntrezIdFromGeneId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
-  
+
   if (anno.source %in% c('refGene', 'knownGene', 'acembly')) {
     message("Assuming gene id is its symbol")
     ids <- getEntrezIdFromSymbol(x, id, anno.source, rm.unknown)
@@ -186,19 +187,19 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))    
+      unk <- which(sapply(ids, is.na))
     }
-    
+
     if (length(unk) > 0) {
       warning("Unknown transcript ids: ", paste(id[unk], collapse=","))
       ids[unk] <- NULL
     }
   }
-  
+
   if (length(ids) == 1L) {
     ids <- unlist(ids)
   }
-  
+
   ids
 })
 
@@ -229,7 +230,7 @@ function(x, id, anno.source, rm.unknown=TRUE) {
 setMethod("getTranscriptIdFromEntrezId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
-  
+
   if (anno.source == 'ensGene') {
     map <- getAnnMap('ENSEMBLTRANS', x)
   } else if (anno.source == 'refGene') {
@@ -247,14 +248,14 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))    
+      unk <- which(sapply(ids, is.na))
     }
-    
+
     if (length(unk) > 0) {
       warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
       ids[unk] <- NULL
     }
-    
+
     if (anno.source == 'refGene') {
       ## Remove protein refseq IDs
       ids <- lapply(ids, function(vals) {
@@ -262,11 +263,11 @@ function(x, id, anno.source, rm.unknown) {
       })
     }
   }
-  
+
   if (length(ids) == 1L) {
     ids <- unlist(ids)
   }
-  
+
   ids
 })
 
@@ -289,7 +290,7 @@ function(x, id, anno.source=annotationSource(x), rm.unknown) {
 setMethod("getTranscriptIdFromEntrezId", c(x="GenomicCache"),
 function(x, id, anno.source, rm.unknown) {
   ## getTranscriptIdFromEntrezId(genome(x), id, annotationSource(x), rm.unknown)
-  getTranscriptIdFromEntrezId(txdb(x), id, annotationSource(x), rm.unknown)  
+  getTranscriptIdFromEntrezId(txdb(x), id, annotationSource(x), rm.unknown)
 })
 
 
@@ -305,20 +306,20 @@ function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
   map <- getAnnMap('SYMBOL', x)
   ids <- mget(id, map, ifnotfound=NA)
-  
+
   if (rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))    
+      unk <- which(sapply(ids, is.na))
     }
-    
+
     if (length(unk) > 0) {
       warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
       ids[unk] <- NULL
     }
   }
-  
+
   if (length(ids) == 1) {
     ids <- unlist(ids)
   }
@@ -346,13 +347,13 @@ function(x, id, anno.source, rm.unknown) {
 ###############################################################################
 setGeneric("getGeneIdFromEntrezId",
 function(x, id, anno.source, rm.unknown=TRUE) {
- standardGeneric("getGeneIdFromEntrezId") 
+ standardGeneric("getGeneIdFromEntrezId")
 })
 
 setMethod("getGeneIdFromEntrezId", c(x="character"),
 function(x, id, anno.source, rm.unknown) {
   x <- getAnnoPackageName(x)
-  
+
   if (anno.source %in% c('refGene', 'knownGene', 'acembly')) {
     warning("RefSeq doesn't have 'gene ids' since their IDs are ",
             "returning the gene symbol")
@@ -366,19 +367,19 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))    
+      unk <- which(sapply(ids, is.na))
     }
-    
+
     if (length(unk) > 0) {
       warning("Unknown entrez ids: ", paste(id[unk], collapse=","))
       ids[unk] <- NULL
     }
   }
-  
+
   if (length(ids) == 1) {
     ids <- unlist(ids)
   }
-  
+
   ids
 })
 
