@@ -96,10 +96,12 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
 
   ## Preload objects
   can.load <- c('transcripts', 'exons', 'utr3', 'utr5')
-  for (what in pre.load) {
-    if (!what %in% can.load) warning("Don't know how to load: ", what, "\n")
-    cat("Preloading", what, "...\n")
-    getFunction(what)(gc)
+  if (is.character(pre.load) && length(pre.load)) {
+    for (what in pre.load) {
+      if (!what %in% can.load) warning("Don't know how to load: ", what, "\n")
+      cat("Preloading", what, "...\n")
+      getFunction(what)(gc)
+    }
   }
 
   gc

@@ -12,14 +12,23 @@
 ##' @param verbose Let us know what's going on
 ##'
 ##' @return \code{TRUE} if everything is kosher, otherwise an error is thrown.
-checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE) {
+checkOrCreateDirectory <- function(path, create=FALSE, verbose=TRUE,
+                                   raise.error=TRUE) {
   if (!dir.exists(path)) {
     if (!create) {
-      stop("Directory", path, "does not exist", sep=" ")
+      if (raise.error) {
+        stop("Directory", path, "does not exist", sep=" ")
+      } else {
+        return(FALSE)
+      }
     } else {
       if (verbose) cat("Creating directory", path, "...\n")
       if (!dir.create(path)) {
-        stop("Error! Check permissions? Parent directory exists?")
+        if (raise.error) {
+          stop("Error! Check permissions? Parent directory exists?")
+        } else {
+          return(FALSE)
+        }
       }
     }
   }
