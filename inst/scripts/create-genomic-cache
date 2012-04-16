@@ -1,0 +1,174 @@
+#!/usr/bin/env Rscript-devel
+
+details <- "
+  Creates a new GenomicCache for a given genome assembly and annotation source.
+  
+  NOTE: Only UCSC tables are supported for now.
+  
+  Example:
+  
+    create-genomic-cache hg19 refGene
+  
+  Packages Required:
+    + GenomicCache
+    + The org.*.eg.db annotation package for the organism
+    + optparse
+    + doMC
+    + SeqTools
+    + DBI
+    + data.table"
+
+## Use `optparse` to configure and parse command line arguments.
+suppressPackageStartupMessages({
+  if (!require(optparse)) {
+    stop('The optparse library needed, please install via:\n',
+         'install.packages("optparse", repos="http://R-Forge.R-project.org")')
+  }
+})
+
+if (verbose) {
+  cat("Loading required packages ...\n")
+}
+suppressPackageStartupMessages({
+  ## This should just be `library(GenomicCache)`
+  library(doMC)
+  library(SeqTools)
+  library(GenomicCache)
+  library(data.table)
+})
+
+################################################################################
+## Generic Rscript setup
+## -----------------------------------------------------------------------------
+
+## Insures that Rscript will exit during an uncaught error
+options(error=function(err) {
+  cat("\nAn error happened you didn't account for ...\n")
+  cat("\n\n")
+  quit(save='no', status=1)
+})
+
+dir.exists <- function(path) {
+  path <- as.character(path)
+  sapply(file.info(path)$isdir, isTRUE)
+}
+
+################################################################################
+## Particulars of this script start here
+## -----------------------------------------------------------------------------
+usage <- paste("%prog [OPTIONS] GENOME_ASSEMBLY ANNOTATION_SOURCE", details, sep="\n")
+option.list <-
+  list(make_option(c('-o', '--out'), default='.', type='character',
+                   help="The output directory to create the cache into"),
+       make_option(c('-u', '--upstream'), default=500, type='integer',
+                   help="The distance to extend the 5'utr"),
+       make_option(c('-d', '--downstream'), default=5000, type='integer',
+                   help="The distance to extend the 3'utr"),
+       make_option(c('-t', '--threads'), default=2, type='integer',
+                   help="Number of threads to use (requires multicore)"),
+       make_option(c('-f', '--faux-utr3'), default=FALSE, action='store_true',
+                   help="Add a 1bp 'fake' 3'utr to coding genes if none exists"),
+       # make_option(c('-a', '--annotate-genome'), default=TRUE))
+       make_option(c('-v', '--verbose'), default=FALSE, action="store_true",
+                    help="Keeps you informed of what's happening."))
+
+parser <- OptionParser(usage=usage, option_list=option.list)
+parsed <- parse_args(parser, positional_arguments=TRUE)
+opts <- parsed$options
+args <- parsed$args
+
+if (length(args) != 2) {
+  err("Genome assembly and annotation source required")
+}
+assembly <- args[1]
+anno <- args[2]
+
+verbose <- opts$verbose
+upstream <- max(opts$upstream, 0)
+downstream <- max(opts$downstream, 0)
+threads <- opts$threads
+
+###############################################################################
+## Check options
+## ----------------------------------------------------------------------------
+
+## Establish output directory
+outdir <- opts$out
+if (outdir != '.') {
+  checkOrCreateDirectory(outdir, create=TRUE)
+}
+if (dir.exists(file.path(outdir, 'cache'))) {
+  stop("The outdir already has a structure that looks like a GenomicCache")
+}
+gc.dirs <- c('features', 'cache',
+             'cache/annotated.chromosomes',
+             'cache/gene.models')
+for (path in gc .dirs) {
+  make.me <- file.path(outdir, path)
+  checkOrCreateDirectory(make.me, create=TRUE)
+}
+
+## ----------------------------------------------------------------------------
+## Check genome assembly
+anno.db <- annotationPackage(assembly)
+
+## ----------------------------------------------------------------------------
+## Check annotation source
+anno <- match.arg(anno, c('refGene', 'ensGene', 'knownGene'))
+
+###############################################################################
+## Everything looks kosher, let's do the deed.
+## ----------------------------------------------------------------------------
+
+registerDoMC(threads)
+options(cores=threads)
+options(mc.cores=hreads)
+
+## ----------------------------------------------------------------------------
+## Creating TranscriptDb
+if (verbose) {
+  cat("Downloading gene information\n")
+}
+makeTranscriptDbFromUCSC(genome=assembly, tablename=anno), silent=TRUE)
+fn <- paste('TranscriptDb', assembly, anno, 'sqlite', sep=".")
+saveDb(tx.db, fn)
+
+## ----------------------------------------------------------------------------
+## Creating Gene models
+if (verbose) {
+  cat("Creating gene models using", threads, "thread(s)\n")
+}
+
+gc <- GenomicCache(outdir, pre.load=NULL)
+tx <- transcripts(gc)
+chrs <- seqlevels(tx)
+chrs.clean <- intersect(seqlevels(gcr), seqleves(tx))
+
+missed <- generateGFXGeneModels(gcr, gene.by='all', gene.collapse='cover',
+                                gene.cds.cover='min', chromosomes=chrs.clean)
+saveRDS(missed, file=file.path(outdir, "missed.ids2.rds"))
+
+## ----------------------------------------------------------------------------
+## Creating annotated genome
+## FIXME
+
+ag <- generateAnnotatedChromosomesByGenes(gcr, flank.up=upstream,
+                                          flank.down=downstream,
+                                          gene.by='all', gene.collapse='cover',
+                                          gene.cds.cover='min', chrs=chrs.clean)
+
+source(file.path(dirname(dirname(.dev.libs$gc$path)), 'TagSeqAnalysis',
+                 'common', 'annotation', 'annotateUtr3.R'))
+
+## ag <- lapply(dir(cacheDir(gcr, 'annotated.chromosomes'), full.names=TRUE), load.it)
+## ag <- do.call(c, unname(ag))
+
+## TODO: Add fuax 3'utrs
+
+ag3 <- reindexUtr3(gcr, flank.up=upstream, flank.down=downstream, gene.by='all',
+                   gene.collapse='cover', gene.cds.cover='min', chrs=chrs.clean)
+
+agi3 <- annotateIntronUtr3(ag3, getBsGenome(genome(gcr)))
+
+saveRDS(agi3, file.path(cacheDir(gcr, 'annotated.chromosomes'),
+          'genome.annotated.collapse-cover.cds-min.intron-utr3.up-1000.down-5000.stranded.rda'))
