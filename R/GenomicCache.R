@@ -84,7 +84,7 @@ GenomicCache <- function(path, pre.load=c('transcripts', 'exons')) {
     stop("Need 1 and only 1 TranscriptDb object in the GenomicCache/features ",
          "directory, found: ", length(txdb.path))
   }
-  .txdb <- loadFeatures(txdb.path)
+  .txdb <- loadDb(txdb.path)
   attr(.txdb, 'path') <- txdb.path
 
   genome <- subset(metadata(.txdb), name == "Genome")$value
