@@ -5,6 +5,41 @@
 ##   from
 ## })
 
+##' the maximum utr3 index is the most distal 3'utr
+##'
+##' @param ag AnnotatedGenome object
+##' @param si.object An object with seqinfo that you want ag to mimic
+annotateIntronUtr3 <- function(ag, si.object=ag) {
+  if (inherits(try(seqinfo(si.object)), "try-error")) {
+    stop("An object with `seqinfo` is required for `si.object`")
+  }
+  if (!is.numeric(values(ag)$utr3.index)) {
+    stop("missing `utr3.index` column, run `indexUtr3`")
+  }
+  agdt <- as(ag, 'data.frame')
+  levels(agdt$exon.anno) <- c(levels(agdt$exon.anno), 'intron.utr3')
+
+  agdt <- data.table(agdt, key=c('seqnames', 'strand', 'entrez.id', 'start'))
+
+  re <- agdt[, {
+    sd <- copy(.SD)
+    is.iutr3 <- utr3.index > 0L & utr3.index < max(utr3.index)
+    sd$exon.anno[is.iutr3] <- 'intron.utr3'
+    sd
+  }, by=head(key(agdt), -1L)]
+
+  gr <- rematchSeqinfo(as(re, 'GRanges'), si.object)
+  gr <- gr[order(gr)]
+
+  for (name in names(values(gr))) {
+    if (is.factor(values(gr)[[name]])) {
+      values(gr)[[name]] <- as.character(values(gr)[[name]])
+    }
+  }
+
+  gr
+}
+
 setValidity("AnnotatedChromosome", function(object) {
   errs <- character()
   expected.meta <- c('exon.anno', 'symbol', 'entrez.id')
@@ -695,6 +730,13 @@ resortColumns <- function(from, to) {
 ##'       (my cached idealized version is hosed when this happens)
 ##' (ii)  the intersection of all transcript boundaries is empty
 ##'       (This hoses the utr{3|5}* annotation logic)
+##' 
+##' TODO: Fix (ii) so that genes like DNMT3A don't get hosed. Its
+##'       intersection turns up empty.
+##' 
+##'     :::||||||||||----------------//---------------||||||||:::::
+##' 
+##'         :::||||---|||:::                 :::||||----||||::::
 ##' @nord
 .goodGene <- function(gene, which.chr) {
   xcripts <- transcripts(gene, which.chr=which.chr)

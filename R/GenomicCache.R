@@ -63,7 +63,7 @@ createGenomicCache <- function(genome, annotation, path='.', gc.name=NULL,
 
   txdb <- makeTranscriptDbFromUCSC(genome=genome, tablename=ucsc.table)
   fn <- paste('TranscriptDb', genome, annotation, 'sqlite', sep=".")
-  saveFeatures(txdb, file.path(gc.path, 'features', fn))
+  saveDb(txdb, file.path(gc.path, 'features', fn))
 
   invisible(GenomicCache(gc.path, pre.load=NULL))
 }
