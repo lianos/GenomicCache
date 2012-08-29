@@ -7,10 +7,10 @@ import(rtracklayer)
 import(data.table)
 import(RSQLite)
 import(SeqTools)
+import(foreach)
 
-importFrom(foreach, foreach)
-#importFrom(AnnotationDbi, mget)
-importFrom(BiocGenerics, mget)
+importFrom(AnnotationDbi, mget)
+#importFrom(BiocGenerics, mget)
 importFrom(ShortRead, id, chromosome)
 importFrom(DBI, dbGetQuery)
 
@@ -115,6 +115,9 @@ export(
        id2symbol,
        getAnnoPackageName,
        generateCacheName,
+
+       tabulateReads,
+       tabulateIntoSummarizedExperiment,
 
        # BigWig Support
        # BigWigFile,
