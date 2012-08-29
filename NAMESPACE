@@ -118,6 +118,7 @@ export(
 
        tabulateReads,
        tabulateIntoSummarizedExperiment,
+       calcRPKM,
 
        # BigWig Support
        # BigWigFile,
