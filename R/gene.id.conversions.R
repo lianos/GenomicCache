@@ -36,7 +36,7 @@
 ##' entrez id(s) is returned, otherwise a named list is returned with the
 ##' entrez id(s) as elements, and the symbol(s) as names
 setGeneric("getEntrezIdFromSymbol",
-function(x, id, anno.source=NULL, rm.unknown=TRUE) {
+function(x, id, anno.source=NULL, rm.unknown=FALSE) {
   standardGeneric("getEntrezIdFromSymbol")
 })
 
@@ -49,7 +49,7 @@ function(x, id, anno.source, rm.unknown) {
   if (is.null(ids)) {
     unk <- seq_along(id)
   } else {
-    unk <- which(sapply(ids, is.na))
+    unk <- which(sapply(ids, function(i) is.na(i[1])))
   }
 
   if (length(unk) > 0) {
@@ -58,11 +58,13 @@ function(x, id, anno.source, rm.unknown) {
     ids[unk] <- mget(id[unk], alias2eg, ifnotfound=NA)
   }
 
+  if (!is.null(ids)) {
+    unk <- which(sapply(ids, function(i) is.na(i[1])))
+  }
+
   if (rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
-    } else {
-      unk <- which(sapply(ids, is.na))
     }
 
     if (length(unk) > 0) {
@@ -94,7 +96,7 @@ function(x, id, anno.source, rm.unknown) {
 ## getEntrezIdFromTranscriptId
 ###############################################################################
 setGeneric("getEntrezIdFromTranscriptId",
-function(x, id, anno.source, rm.unknown=TRUE) {
+function(x, id, anno.source, rm.unknown=FALSE) {
   standardGeneric("getEntrezIdFromTranscriptId")
 })
 
@@ -122,7 +124,7 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))
+      unk <- which(sapply(ids, function(i) is.na(i[1])))
     }
 
     if (length(unk) > 0) {
@@ -167,7 +169,7 @@ function(x, id, anno.source=annotationSource(x), rm.unknown) {
 ## getEntrezIdFromGeneId
 ###############################################################################
 setGeneric("getEntrezIdFromGeneId",
-function(x, id, anno.source, rm.unknown=TRUE) {
+function(x, id, anno.source, rm.unknown=FALSE) {
   standardGeneric("getEntrezIdFromGeneId")
 })
 
@@ -187,7 +189,7 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))
+      unk <- which(sapply(ids, function(i) is.na(i[1])))
     }
 
     if (length(unk) > 0) {
@@ -223,7 +225,7 @@ function(x, id, anno.source, rm.unknown) {
 ## getTranscriptIdFromEntrezId
 ###############################################################################
 setGeneric("getTranscriptIdFromEntrezId",
-function(x, id, anno.source, rm.unknown=TRUE) {
+function(x, id, anno.source, rm.unknown=FALSE) {
   standardGeneric("getTranscriptIdFromEntrezId")
 })
 
@@ -248,7 +250,7 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))
+      unk <- which(sapply(ids, function(i) is.na(i[1])))
     }
 
     if (length(unk) > 0) {
@@ -297,7 +299,7 @@ function(x, id, anno.source, rm.unknown) {
 ###############################################################################
 ## getSymbolFromEntrezId
 ###############################################################################
-setGeneric("getSymbolFromEntrezId", function(x, id, anno.source, rm.unknown=TRUE) {
+setGeneric("getSymbolFromEntrezId", function(x, id, anno.source, rm.unknown=FALSE) {
   standardGeneric("getSymbolFromEntrezId")
 })
 
@@ -311,7 +313,7 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))
+      unk <- which(sapply(ids, function(i) is.na(i[1])))
     }
 
     if (length(unk) > 0) {
@@ -346,7 +348,7 @@ function(x, id, anno.source, rm.unknown) {
 ## getGeneIdFromEntrezId
 ###############################################################################
 setGeneric("getGeneIdFromEntrezId",
-function(x, id, anno.source, rm.unknown=TRUE) {
+function(x, id, anno.source, rm.unknown=FALSE) {
  standardGeneric("getGeneIdFromEntrezId")
 })
 
@@ -367,7 +369,7 @@ function(x, id, anno.source, rm.unknown) {
     if (is.null(ids)) {
       unk <- seq_along(id)
     } else {
-      unk <- which(sapply(ids, is.na))
+      unk <- which(sapply(ids, function(i) is.na(i[1])))
     }
 
     if (length(unk) > 0) {
