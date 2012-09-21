@@ -17,7 +17,7 @@
 ##' use those to filter
 ##' @return An integer vector of counts for each region in \code{x}
 tabulateReads <- function(x, from, assign.by='unique-quantify',
-                          ignore.strand=TRUE,
+                          ignore.strand=FALSE,
                           scan.bam.what='mapq',
                           scan.bam.tags=character(),
                           scan.bam.flag=scanBamFlag(isUnmappedQuery=FALSE),
@@ -43,12 +43,6 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   params <- ScanBamParam(what=scan.bam.what, tag=scan.bam.tags,
                          flag=scan.bam.flag)
 
-  if (.parallel && length(chrs) > 1L) {
-    '%loop%' <- getFunction('%dopar%')
-  } else {
-    '%loop%' <- getFunction('%do%')
-  }
-
   values(x)$.idx. <- 1:length(x)
   regions <- sapply(c("+", "-"), function(strnd) x[strand(x) == strnd])
 
@@ -61,8 +55,12 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
             immediate.=TRUE)
   }
 
-  counts <- foreach(chr=chrs, .packages=c("GenomicRanges", "SeqTools", "Rsamtools"),
-                    .options.multicore=list(preschedule=FALSE)) %loop% {
+  fn <- if (.parallel && length(chrs) > 1L) "%dopar%" else "%do"
+  "%loop%" <- getFunction(fn)
+  pkgs <- c("GenomicRanges", "SeqTools", "Rsamtools")
+  opts <- list(preschedule=FALSE)
+
+  counts <- foreach(chr=chrs, .packages=pkgs, .options.multicore=opts) %loop% {
     param <- params
     bamWhich(param) <- GRanges(chr, IRanges(1, seqlengths(si)[chr]))
     reads <- readGappedAlignments(path(from), param=param)
@@ -138,19 +136,34 @@ tabulateIntoSummarizedExperiment <- function(x, input, colData=DataFrame(),
   SummarizedExperiment(tabulated, rowData=x, colData=colData, exptData=exptData)
 }
 
-## TODO: Incorproate `percent` assay to get better length calculation of
-##       transcripts (ignores parts of exons that are not completely covered)
+
+##' Calculate RPKM from a SummarizedExperiment generated from
+##' \code{tabulateIntoSummarizedExperiment}
+##'
+##' @param x A SummarizedExperiment generated from
+##' \code{tabulateIntoSummarizedExperiment}
+##' @param keys The \code{mcols} to use as keys -- indicate transcript units
+##' @param min.count Minimum number of observed reads required for the exon
+##' (across the atlas) to be considered for inclusion in the RPKM calc
+##' @param with.percent Use \code{percent} column to calculate the "real"
+##' length of the transcript (the K in RPKM).
+##' (TODO: implement calcRPKM,with.percent=TRUE)
 calcRPKM <- function(x, keys=c('seqnames', 'strand', 'entrez.id'),
-                     rm.0counts=TRUE) {
+                     min.count=1L, with.percent=FALSE, as.log=TRUE) {
+  if (with.percent) {
+    stop("with.percent not yet implemented")
+  }
   stopifnot(is(x, "SummarizedExperiment"))
-  stopifnot(all(keys %in% names(mcols(x))))
+  stopifnot(all(setdiff(keys, c('seqnames', 'strand', 'start', 'end')) %in% names(mcols(x))))
   if (is.null(colnames(x))) {
     warning("No experiment names -- adding faux names", immediate.=TRUE)
     colnames(x) <- paste("expt", 1:ncol(x), sep=".")
   }
-  if (rm.0counts) {
-    x <- x[rowSums(assay(x)) > 0]
+
+  if (is.numeric(min.count)) {
+    x <- x[rowSums(assay(x)) >= min.count]
   }
+
   f <- cbind(as(rowData(x), 'data.table'), as.data.table(assay(x)))
   expt.cols <- colnames(x)
   setkeyv(f, keys)
@@ -165,6 +178,10 @@ calcRPKM <- function(x, keys=c('seqnames', 'strand', 'entrez.id'),
     rpkm <- paste(e, 'rpkm', sep='.')
     x.expr[[rpk]] <- 1e3 * (x.expr[[e]] / x.expr[['len']])
     x.expr[[rpkm]] <- 1e6 * (x.expr[[rpk]] / sum(x.expr[[e]]))
+    if (as.log) {
+      x.expr[[rpk]] <- log2(x.expr[[rpk]])
+      x.expr[[rpkm]] <- log2(x.expr[[rpkm]])
+    }
   }
 
   x.expr
