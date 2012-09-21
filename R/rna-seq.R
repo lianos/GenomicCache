@@ -50,7 +50,9 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   }
 
   values(x)$.idx. <- 1:length(x)
-  regions <- sapply(c("+", "-"), function(strnd) x[strand(x) == strnd])
+  regions <- sapply(c("+", "-"), function(strnd) {
+    x[strand(x) == strnd]
+  }, simplify=FALSE)
 
   strands <- names(regions)
   si <- seqinfo(from)
@@ -77,7 +79,7 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
     } else {
       cover <- sapply(c("+", "-"), function(s) {
         coverage(reads[strand(reads) == s])[[chr]]
-      })
+      }, simplify=FALSE)
     }
 
     greads <- as(reads, "GRanges")
