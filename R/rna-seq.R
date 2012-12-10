@@ -57,7 +57,7 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
             immediate.=TRUE)
   }
 
-  fn <- if (.parallel && length(chrs) > 1L) "%dopar%" else "%do"
+  fn <- if (.parallel && length(chrs) > 1L) "%dopar%" else "%do%"
   "%loop%" <- getFunction(fn)
   pkgs <- c("GenomicRanges", "SeqTools", "Rsamtools")
   opts <- list(preschedule=FALSE)
