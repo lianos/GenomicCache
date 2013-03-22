@@ -18,9 +18,7 @@
 ##' @return An integer vector of counts for each region in \code{x}
 tabulateReads <- function(x, from, assign.by='unique-quantify',
                           ignore.strand=FALSE,
-                          scan.bam.what='mapq',
-                          scan.bam.tags=character(),
-                          scan.bam.flag=scanBamFlag(isUnmappedQuery=FALSE),
+                          scan.bam.param=bwaSamseParams(),
                           filter.fn=NULL, chrs=NULL,
                           min.cover=1L, ..., .parallel=TRUE) {
   if (is.character(from)) {
@@ -29,7 +27,7 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   stopifnot(inherits(from, "BamFile"))
   stopifnot(file.exists(path(from)))
   stopifnot(file.exists(paste(path(from), 'bai', sep=".")))
-
+  stopifnot(is(scan.bam.param, "ScanBamParam"))
   stopifnot(inherits(x, "GenomicRanges"))
 
   assign.by <- match.arg(assign.by, c('unique-quantify', 'unique-fix', 'all'))
@@ -40,9 +38,6 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   }
   stopifnot(all(chrs %in% all.chrs))
 
-  params <- ScanBamParam(what=scan.bam.what, tag=scan.bam.tags,
-                         flag=scan.bam.flag)
-
   values(x)$.idx. <- 1:length(x)
   regions <- sapply(c("+", "-"), function(strnd) {
     x[strand(x) == strnd]
@@ -52,18 +47,18 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   si <- seqinfo(from)
   ans <- data.frame(count=integer(length(x)), percent=numeric(length(x)))
 
-  if (any(mcols(x)$exon.anno %in% "intron")) {
+  if (any(mcols(x)$exon.anno %in% "intron") && assign.by != 'all') {
     warning("Reads that span introns do not work well with quantifyOverlaps",
             immediate.=TRUE)
   }
 
-  fn <- if (.parallel && length(chrs) > 1L) "%dopar%" else "%do"
+  fn <- if (.parallel && length(chrs) > 1L) "%dopar%" else "%do%"
   "%loop%" <- getFunction(fn)
   pkgs <- c("GenomicRanges", "SeqTools", "Rsamtools")
   opts <- list(preschedule=FALSE)
 
   counts <- foreach(chr=chrs, .packages=pkgs, .options.multicore=opts) %loop% {
-    param <- params
+    param <- scan.bam.params
     bamWhich(param) <- GRanges(chr, IRanges(1, seqlengths(si)[chr]))
     reads <- readGappedAlignments(path(from), param=param)
     if (is.function(filter.fn)) {
@@ -121,6 +116,8 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   ans
 }
 
+## Parallelization is over each chromosome, so experiments are processed
+## serially
 tabulateIntoSummarizedExperiment <- function(x, input, colData=DataFrame(),
                                              exptData=SimpleList(),
                                              ..., .parallel=TRUE) {
