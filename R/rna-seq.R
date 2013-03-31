@@ -58,7 +58,7 @@ tabulateReads <- function(x, from, assign.by='unique-quantify',
   opts <- list(preschedule=FALSE)
 
   counts <- foreach(chr=chrs, .packages=pkgs, .options.multicore=opts) %loop% {
-    param <- scan.bam.params
+    param <- scan.bam.param
     bamWhich(param) <- GRanges(chr, IRanges(1, seqlengths(si)[chr]))
     reads <- readGappedAlignments(path(from), param=param)
     if (is.function(filter.fn)) {

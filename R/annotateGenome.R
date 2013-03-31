@@ -5,6 +5,49 @@
 ##   from
 ## })
 
+#' Checks a GenomicRanges-like object if it looks like an annotated genome
+isValidAnnotatedGenome <- function(x, check.extensions=FALSE,
+                                   key.by=c('seqnames','strand','entrez.id')) {
+  if (!inherits(x, "GenomicRanges")) {
+    return("This does not inherit from GenomicRanges")
+  }
+  errs <- character()
+  ##############################################################################
+  ## Ensure object is densely annotated and has no overlaps
+  x.gaps <- gaps(x)
+  x.gaps <- x.gaps[strand(x.gaps) != '*']
+  has.gaps <- length(x.gaps) > 0
+  has.overlaps <- length(findOverlaps(x, ignoreSelf=TRUE)) > 0
+  if (has.gaps) {
+    errs <- "Object has gaps in the annotation"
+  }
+  if (has.overlaps) {
+    errs <- c(errs, "Object has overlapping annotations")
+  }
+
+  ###############################################################################
+  ## Check that there is a max of 1 utr3* and utr5* for entrez.id
+  if (check.extensions) {
+    ag.dt <- as(anno, 'data.table')
+    setkeyv(ag.dt, key.by)
+    n.ext <- ag.dt[, {
+      list(utr5e=sum(exon.anno == 'utr5*'), utr3e=sum(exon.anno == 'utr3*'))
+    }, by=key.by]
+    if (any(n.ext$utr5e > 1)) {
+      errs <- c(errs, "utr5* annotations are not consistent")
+    }
+    if (any(n.ext$utr3e > 1)) {
+      errs <- c(errs, "utr3* annotations are not consistent")
+    }
+  }
+
+  if (length(errs) > 0) {
+    return(errs)
+  } else {
+    return(TRUE)
+  }
+}
+
 ##' the maximum utr3 index is the most distal 3'utr
 ##'
 ##' @param ag AnnotatedGenome object
@@ -148,47 +191,6 @@ getAnnotatedGenome <- function(gcache, gene.collapse='longest', flank.up=1000L,
   as(annotated, 'AnnotatedChromosome')
 }
 
-isValidAnnotatedGenome <- function(x, gene.collapse='cover',
-                                   flank.up=1000L, flank.down=1000L,
-                                   stranded=TRUE) {
-  if (is(x, 'AnnotatedChromosome')) {
-    anno <- x
-  } else if (inhertis(x, 'GenomicCache')) {
-    anno <- getAnnotatedGenome(x, gene.collapse=gene.collapse,
-                               flank.up=flank.up, flank.down=flank.down,
-                               stranded=stranded)
-  }
-
-  errs <- character()
-
-  ##############################################################################
-  ## Check for overlapping annotations
-  o <- findOverlaps(anno, ignoreSelf=TRUE, type='any')
-  if (length(o) > 0) {
-    errs <- c(errs, "overlapping annotations exist")
-  }
-
-  ###############################################################################
-  ## Check that there is a max of 1 utr3* and utr5* for entrez.id
-  ag.dt <- as(anno, 'data.table')
-  key(ag.dt) <- c('entrez.id')
-  n.ext <- ag.dt[, list(utr5e=sum(exon.anno == 'utr5*'),
-                        utr3e=sum(exon.anno == 'utr3*')),
-                 by=entrez.id]
-  if (any(n.ext$utr5e > 1)) {
-    errs <- c(errs, "utr5* annotations are not consistent")
-  }
-  if (any(n.ext$utr3e > 1)) {
-    errs <- c(errs, "utr3* annotations are not consistent")
-  }
-
-  if (length(errs) > 0) {
-    ## cat(paste(errs, collapse="\n"))
-    return(errs)
-  } else {
-    return(TRUE)
-  }
-}
 
 ##' The crank that turns the annotateChromosome function over the chromosomes
 ##' of a \code{GenomicCache}
@@ -730,12 +732,12 @@ resortColumns <- function(from, to) {
 ##'       (my cached idealized version is hosed when this happens)
 ##' (ii)  the intersection of all transcript boundaries is empty
 ##'       (This hoses the utr{3|5}* annotation logic)
-##' 
+##'
 ##' TODO: Fix (ii) so that genes like DNMT3A don't get hosed. Its
 ##'       intersection turns up empty.
-##' 
+##'
 ##'     :::||||||||||----------------//---------------||||||||:::::
-##' 
+##'
 ##'         :::||||---|||:::                 :::||||----||||::::
 ##' @nord
 .goodGene <- function(gene, which.chr) {
