@@ -57,9 +57,6 @@ annotateIntronUtr3 <- function(ag, si.object=ag) {
   if (inherits(try(seqinfo(si.object)), "try-error")) {
     stop("An object with `seqinfo` is required for `si.object`")
   }
-  if (!is.numeric(values(ag)$utr3.index)) {
-    stop("missing `utr3.index` column, run `indexUtr3`")
-  }
   agdt <- as(ag, 'data.frame')
   levels(agdt$exon.anno) <- c(levels(agdt$exon.anno), 'intron.utr3')
 
