@@ -57,6 +57,15 @@ annotateIntronUtr3 <- function(ag, si.object=ag, nuke.factors=TRUE) {
   agdt <- as.data.table(as.data.frame(ag))
   agdt[, exon.anno := as.character(exon.anno)]
 
+  ## Hammer out any factors to characters -- you will thank me later
+  if (nuke.factors) {
+    for (wut in names(agdt)) {
+      if (is.factor(agdt[[wut]])) {
+        agdt[, (wut) := as.character(agdt[[wut]])]
+      }
+    }
+  }
+
   is.genic <- !is.na(agdt$entrez.id)
   other <- agdt[!is.genic]
   genic <- agdt[is.genic]
@@ -87,15 +96,6 @@ annotateIntronUtr3 <- function(ag, si.object=ag, nuke.factors=TRUE) {
   }, by=c('seqnames', 'strand', 'entrez.id')]
   setcolorder(re, names(other))
   out <- rbind(other, re)
-
-  ## Hammer out any factors to characters -- you will thank me later
-  if (nuke.factors) {
-    for (wut in names(out)) {
-      if (is.factor(out[[wut]])) {
-        out[, (wut) := as.character(out[[wut]])]
-      }
-    }
-  }
 
   gr <- as(out, "GRanges")
   gr <- rematchSeqinfo(gr, si.object)
