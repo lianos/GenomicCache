@@ -48,46 +48,12 @@ isValidAnnotatedGenome <- function(x, check.extensions=FALSE,
   }
 }
 
-##' the maximum utr3 index is the most distal 3'utr
-##'
-##' @param ag AnnotatedGenome object
-##' @param si.object An object with seqinfo that you want ag to mimic
-##' @export
-annotateIntronUtr3 <- function(ag, si.object=ag) {
-  if (inherits(try(seqinfo(si.object)), "try-error")) {
-    stop("An object with `seqinfo` is required for `si.object`")
-  }
-  agdt <- as(ag, 'data.frame')
-  levels(agdt$exon.anno) <- c(levels(agdt$exon.anno), 'intron.utr3')
-
-  agdt <- data.table(agdt, key=c('seqnames', 'strand', 'entrez.id', 'start'))
-
-  re <- agdt[, {
-    sd <- copy(.SD)
-    is.iutr3 <- utr3.index > 0L & utr3.index < max(utr3.index)
-    sd$exon.anno[is.iutr3] <- 'intron.utr3'
-    sd
-  }, by=head(key(agdt), -1L)]
-
-  gr <- rematchSeqinfo(as(re, 'GRanges'), si.object)
-  gr <- gr[order(gr)]
-
-  for (name in names(values(gr))) {
-    if (is.factor(values(gr)[[name]])) {
-      values(gr)[[name]] <- as.character(values(gr)[[name]])
-    }
-  }
-
-  gr
-}
 
 annotateIntronUtr3 <- function(ag, si.object=ag, nuke.factors=TRUE) {
   if (inherits(try(seqinfo(si.object)), "try-error")) {
     stop("An object with `seqinfo` is required for `si.object`")
   }
-  if (!is.numeric(values(ag)$utr3.index)) {
-    stop("missing `utr3.index` column, run `indexUtr3`")
-  }
+
   agdt <- as.data.table(as.data.frame(ag))
   agdt[, exon.anno := as.character(exon.anno)]
 
