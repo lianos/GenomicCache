@@ -52,6 +52,7 @@ isValidAnnotatedGenome <- function(x, check.extensions=FALSE,
 ##'
 ##' @param ag AnnotatedGenome object
 ##' @param si.object An object with seqinfo that you want ag to mimic
+##' @export
 annotateIntronUtr3 <- function(ag, si.object=ag) {
   if (inherits(try(seqinfo(si.object)), "try-error")) {
     stop("An object with `seqinfo` is required for `si.object`")

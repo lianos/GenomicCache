@@ -95,6 +95,7 @@ export(
        ## ShortRead
        id, chromosome,
        ## annotateGenome
+       annotateIntronUtr3,
        isValidAnnotatedGenome,
        getAnnotatedChromosome,
        getAnnotatedGenome,
