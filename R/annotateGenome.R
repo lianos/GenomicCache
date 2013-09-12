@@ -84,6 +84,63 @@ annotateIntronUtr3 <- function(ag, si.object=ag) {
   gr
 }
 
+annotateIntronUtr3 <- function(ag, si.object=ag, nuke.factors=TRUE) {
+  if (inherits(try(seqinfo(si.object)), "try-error")) {
+    stop("An object with `seqinfo` is required for `si.object`")
+  }
+  if (!is.numeric(values(ag)$utr3.index)) {
+    stop("missing `utr3.index` column, run `indexUtr3`")
+  }
+  agdt <- as.data.table(as.data.frame(ag))
+  agdt[, exon.anno := as.character(exon.anno)]
+
+  is.genic <- !is.na(agdt$entrez.id)
+  other <- agdt[!is.genic]
+  genic <- agdt[is.genic]
+  setkeyv(genic, c('seqnames', 'strand', 'entrez.id', 'start'))
+
+  re <- genic[, {
+    is.utr3 <- which(exon.anno == 'utr3')
+    breaks.utr3 <- which(exon.anno %in% c('cds', 'utr', 'utr5'))
+    intron.utr3 <- integer()
+    if (strand == '+') {
+      if (length(is.utr3) > 0 & length(breaks.utr3) > 0) {
+        intron.utr3 <- is.utr3[is.utr3 < max(breaks.utr3)]
+      }
+    } else {
+      if (length(is.utr3) > 0 & length(breaks.utr3) > 0) {
+        intron.utr3 <- is.utr3[is.utr3 > min(breaks.utr3)]
+      }
+    }
+
+    if (length(intron.utr3) > 0) {
+      sd <- copy(.SD)
+      sd$exon.anno[intron.utr3] <- 'intron.utr3'
+    } else {
+      sd <- .SD
+    }
+
+    sd
+  }, by=c('seqnames', 'strand', 'entrez.id')]
+  setcolorder(re, names(other))
+  out <- rbind(other, re)
+
+  ## Hammer out any factors to characters -- you will thank me later
+  if (nuke.factors) {
+    for (wut in names(out)) {
+      if (is.factor(out[[wut]])) {
+        out[, (wut) := as.character(out[[wut]])]
+      }
+    }
+  }
+
+  gr <- as(out, "GRanges")
+  gr <- rematchSeqinfo(gr, si.object)
+  gr <- gr[order(gr)]
+
+  gr
+}
+
 setValidity("AnnotatedChromosome", function(object) {
   errs <- character()
   expected.meta <- c('exon.anno', 'symbol', 'entrez.id')
@@ -758,4 +815,3 @@ resortColumns <- function(from, to) {
 
   TRUE
 }
-
